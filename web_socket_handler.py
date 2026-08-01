@@ -10,7 +10,7 @@ class Dot2WebSocketHandler:
                  username="remote",
                  password="1",
                  heartbeat_step=10,
-                 debug=True,
+                 debug=False,
 
                  bwing_start_index=[300, 400, 500, 600, 700, 800],
                  bwing_items_count=[16, 16, 16, 16, 16, 16],

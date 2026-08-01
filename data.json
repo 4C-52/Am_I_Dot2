@@ -4,10 +4,12 @@
   "default_ip_address": "192.168.0.6",
   "dot2_password": "1",
   "config_mode": 0,
-  "DEFAULT_MIDI_INPORT_DEVICE1": "Bome MIDI Translator 1 3",
-  "DEFAULT_MIDI_OUTPORT_DEVICE1": "Bome MIDI Translator 1 4",
-  "DEFAULT_MIDI_INPORT_DEVICE2": "Bome MIDI Translator 2 4",
-  "DEFAULT_MIDI_OUTPORT_DEVICE2": "Bome MIDI Translator 2 5",
+  "DEFAULT_MIDI_INPORT_DEVICE1": "APC mini mk2 3",
+  "DEFAULT_MIDI_OUTPORT_DEVICE1": "APC mini mk2 4",
+  "DEFAULT_MIDI_INPORT_DEVICE2": "MIDIIN2 (APC mini mk2) 4",
+  "DEFAULT_MIDI_OUTPORT_DEVICE2": "MIDIOUT2 (APC mini mk2) 5",
+  "DEFAULT_MIDI_INPORT_DEVICE100": "Dot-2 5",
+  "DEFAULT_MIDI_OUTPORT_DEVICE100": "Dot-2 6",
   "note_executor_dictionary_device1": {
     "0": {
       "executor_index": 213,
@@ -659,5 +661,27 @@
       "executor_index": 3,
       "color": 1
     }
+  },
+  "cc_note_dictionary_device1": {
+    "48": 89,
+    "49": 90,
+    "50": 91,
+    "51": 92,
+    "52": 93,
+    "53": 94,
+    "54": 95,
+    "55": 96,
+    "56": 98
+  },
+  "cc_note_dictionary_device2": {
+    "48": 81,
+    "49": 82,
+    "50": 83,
+    "51": 84,
+    "52": 85,
+    "53": 86,
+    "54": 87,
+    "55": 88,
+    "56": 97
   }
 }

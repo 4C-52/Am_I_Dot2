@@ -30,6 +30,7 @@ class MidiController:
 
     BUTTON_COLORS_DEVICE1 = list(range(0, 65))
     BUTTON_COLORS_DEVICE2 = list(range(65, 128))
+    NOTE_COLOR_MAP = {0: '#000000', 1: '#1E1E1E', 2: '#7F7F7F', 3: '#FFFFFF', 4: '#FF4C4C', 5: '#FF0000', 6: '#590000', 7: '#190000', 8: '#FFBD6C', 9: '#FF5400', 10: '#591D00', 11: '#271B00', 12: '#FFFF4C', 13: '#FFFF00', 14: '#595900', 15: '#191900', 16: '#88FF4C', 17: '#54FF00', 18: '#1D5900', 19: '#142B00', 20: '#4CFF4C', 21: '#00FF00', 22: '#005900', 23: '#001900', 24: '#4CFF5E', 25: '#00FF19', 26: '#00590D', 27: '#001902', 28: '#4CFF88', 29: '#00FF55', 30: '#00591D', 31: '#001F12', 32: '#4CFFB7', 33: '#00FF99', 34: '#005935', 35: '#001912', 36: '#4CC3FF', 37: '#00A9FF', 38: '#004152', 39: '#001019', 40: '#4C88FF', 41: '#0055FF', 42: '#001D59', 43: '#000819', 44: '#4C4CFF', 45: '#0000FF', 46: '#000059', 47: '#000019', 48: '#874CFF', 49: '#5400FF', 50: '#190064', 51: '#0F0030', 52: '#FF4CFF', 53: '#FF00FF', 54: '#590059', 55: '#190019', 56: '#FF4C87', 57: '#FF0054', 58: '#59001D', 59: '#220013', 60: '#FF1500', 61: '#993500', 62: '#795100', 63: '#436400', 64: '#033900', 65: '#005735', 66: '#00547F', 67: '#0000FF', 68: '#00454F', 69: '#2500CC', 70: '#7F7F7F', 71: '#202020', 72: '#FF0000', 73: '#BDFF2D', 74: '#AFED06', 75: '#64FF09', 76: '#108B00', 77: '#00FF87', 78: '#00A9FF', 79: '#002AFF', 80: '#3F00FF', 81: '#7A00FF', 82: '#B21A7D', 83: '#402100', 84: '#FF4A00', 85: '#88E106', 86: '#72FF15', 87: '#00FF00', 88: '#3BFF26', 89: '#59FF71', 90: '#38FFCC', 91: '#5B8AFF', 92: '#3151C6', 93: '#877FE9', 94: '#D31DFF', 95: '#FF005D', 96: '#FF7F00', 97: '#B9B000', 98: '#90FF00', 99: '#835D07', 100: '#392b00', 101: '#144C10', 102: '#0D5038', 103: '#15152A', 104: '#16205A', 105: '#693C1C', 106: '#A8000A', 107: '#DE513D', 108: '#D86A1C', 109: '#FFE126', 110: '#9EE12F', 111: '#67B50F', 112: '#1E1E30', 113: '#DCFF6B', 114: '#80FFBD', 115: '#9A99FF', 116: '#8E66FF', 117: '#404040', 118: '#757575', 119: '#E0FFFF', 120: '#A00000', 121: '#350000', 122: '#1AD000', 123: '#074200', 124: '#B9B000', 125: '#3F3100', 126: '#B35F00', 127: '#4B1502'}
 
     HEARTBEAT_STEP = 10
     PERIODIC_PLAYBACK_INTERVAL = 3  # in seconds
@@ -58,11 +59,15 @@ class MidiController:
         self.midi_outport_device1 = None
         self.midi_inport_device2 = None
         self.midi_outport_device2 = None
+        self.midi_inport_device100 = None
+        self.midi_outport_device100 = None
 
         self.default_midi_inport_device1 = ""
         self.default_midi_outport_device1 = ""
         self.default_midi_inport_device2 = ""
         self.default_midi_outport_device2 = ""
+        self.default_midi_inport_device100 = None
+        self.default_midi_outport_device100 = None
         self.inverted_devices = False
 
         # Data loaded from JSON
@@ -71,10 +76,12 @@ class MidiController:
         self.executor_note_dictionary = {}
         self.executor_states = set()
         self.temporary_exec_states = set()
+        self.cc_note_dictionary_device1 = {}
+        self.cc_note_dictionary_device2 = {}
 
         self.default_brightness_level = 6
         self.default_blink_channel = 10
-        self.config_mode = 1
+        self.config_mode = 0
 
         # Dot2 connection info (populated by load_json)
         self.host = "192.168.0.6"
@@ -104,7 +111,6 @@ class MidiController:
             (self.midi_outport_device2, self.midi_outport_device1)
 
         self.inverted_devices = not self.inverted_devices
-        self.set_correct_bmt_preset()
         self.update_colors()
 
     @staticmethod
@@ -164,12 +170,6 @@ class MidiController:
             executor = entry["executor_index"]
             self.executor_note_dictionary.setdefault(executor, []).append([note, 2])
 
-    def set_correct_bmt_preset(self):
-        if self.inverted_devices:
-            self.send_midi_message("note_on", 0, 127, 67)
-        else:
-            self.send_midi_message("note_on", 0, 127, 69)
-
     # =================================================================
     #                            JSON
     # =================================================================
@@ -180,6 +180,8 @@ class MidiController:
 
         self.note_executor_dictionary_device1 = data["note_executor_dictionary_device1"]
         self.note_executor_dictionary_device2 = data["note_executor_dictionary_device2"]
+        self.cc_note_dictionary_device1 = data["cc_note_dictionary_device1"]
+        self.cc_note_dictionary_device2 = data["cc_note_dictionary_device2"]
         self.default_brightness_level = data["default_brightness_level"]
         self.default_blink_channel = data["default_blink_channel"]
         self.host = data["default_ip_address"]
@@ -197,6 +199,12 @@ class MidiController:
 
         if data["DEFAULT_MIDI_OUTPORT_DEVICE2"] != "":
             self.default_midi_outport_device2 = data["DEFAULT_MIDI_OUTPORT_DEVICE2"]
+
+        if data["DEFAULT_MIDI_INPORT_DEVICE100"] != "":
+            self.default_midi_inport_device100 = data["DEFAULT_MIDI_INPORT_DEVICE100"]
+
+        if data["DEFAULT_MIDI_OUTPORT_DEVICE100"] != "":
+            self.default_midi_outport_device100 = data["DEFAULT_MIDI_OUTPORT_DEVICE100"]
 
     def _read_data_file(self):
         with open(self.DATA_FILEPATH, "r") as f:
@@ -227,8 +235,24 @@ class MidiController:
 
         self._write_data_file(data)
 
-    def set_default_devices(self, device1_input="", device1_output="",
-                             device2_input="", device2_output=""):
+    def append_cc_to_json(self, cc, note, device_id):
+        data = self._read_data_file()
+
+        if device_id == 1:
+            data["cc_note_dictionary_device1"][str(cc)] = note
+        elif device_id == 2:
+            data["cc_note_dictionary_device2"][str(cc)] = note
+
+        data["cc_note_dictionary_device1"] = dict(
+            sorted(data["cc_note_dictionary_device1"].items(), key=lambda x: int(x[0]))
+        )
+        data["cc_note_dictionary_device2"] = dict(
+            sorted(data["cc_note_dictionary_device2"].items(), key=lambda x: int(x[0]))
+        )
+
+        self._write_data_file(data)
+
+    def set_default_devices(self, device1_input="", device1_output="", device2_input="", device2_output=""):
         data = self._read_data_file()
 
         if device1_input != "":
@@ -239,6 +263,16 @@ class MidiController:
             data["DEFAULT_MIDI_OUTPORT_DEVICE1"] = device1_output
         if device2_output != "":
             data["DEFAULT_MIDI_OUTPORT_DEVICE2"] = device2_output
+
+        self._write_data_file(data)
+
+    def set_default_dot2_ports(self, dot2_input="", dot2_output=""):
+        data = self._read_data_file()
+
+        if dot2_input != "":
+            data["DEFAULT_MIDI_INPORT_DEVICE100"] = dot2_input
+        if dot2_output != "":
+            data["DEFAULT_MIDI_OUTPORT_DEVICE100"] = dot2_output
 
         self._write_data_file(data)
 
@@ -314,6 +348,23 @@ class MidiController:
         self.load_json()
         self.update_colors()
 
+    def get_note_from_cc(self, cc, device_id):
+        if device_id == 1 and str(cc) in self.cc_note_dictionary_device1.keys():
+            return self.cc_note_dictionary_device1[str(cc)]
+        elif device_id == 2 and str(cc) in self.cc_note_dictionary_device2.keys():
+            return self.cc_note_dictionary_device2[str(cc)]
+
+    def link_cc_note(self, cc, device_id):
+        """
+        Updates the data.json file
+        :param cc: control change id
+        :param device_id:
+        :return:
+        """
+        note = int(self.ask_input("Please input the id of the note"))
+        self.append_cc_to_json(cc=cc, note=note, device_id=device_id)
+        self.load_json()
+
     # =================================================================
     #                            MIDI
     # =================================================================
@@ -327,6 +378,26 @@ class MidiController:
     def select_midi_ports(self):
         available_inputs = mido.get_input_names()
         available_outputs = mido.get_output_names()
+
+        # --- Dot2 Input ---
+        if self.default_midi_inport_device100 not in available_inputs:
+            temp = self._prompt_for_port(available_inputs, "Dot-2 Input")
+            self.midi_inport_device100 = mido.open_input(temp)
+            available_inputs.remove(temp)
+            self.default_midi_inport_device100 = temp
+            self.set_default_dot2_ports(dot2_input=temp)
+        else:
+            self.midi_inport_device100 = mido.open_input(self.default_midi_inport_device100)
+
+        # --- Dot2 Output ---
+        if self.default_midi_outport_device100 not in available_outputs:
+            temp = self._prompt_for_port(available_outputs, "Dot-2 Output")
+            self.midi_outport_device100 = mido.open_output(temp)
+            available_outputs.remove(temp)
+            self.default_midi_outport_device100 = temp
+            self.set_default_dot2_ports(dot2_output=temp)
+        else:
+            self.midi_outport_device100 = mido.open_output(self.default_midi_outport_device100)
 
         # --- Input Device 1 ---
         if self.default_midi_inport_device1 not in available_inputs:
@@ -377,6 +448,8 @@ class MidiController:
             f"Midi Device IN 2: {self.midi_inport_device2}\n"
             f"MIDI Device OUT 1: {self.midi_outport_device1}\n"
             f"MIDI Device OUT 2: {self.midi_outport_device2}\n"
+            f"Dot-2 Input: {self.midi_inport_device100}\n"
+            f"Dot-2 Output: {self.midi_outport_device100}\n"
         )
 
     def flash_color(self, duration, color):
@@ -397,9 +470,11 @@ class MidiController:
             self.midi_outport_device1.send(midi_message)
         elif device_id == 2:
             self.midi_outport_device2.send(midi_message)
-        else:
+        elif device_id == 3:
             self.midi_outport_device1.send(midi_message)
             self.midi_outport_device2.send(midi_message)
+        elif device_id == 100:
+            self.midi_outport_device100.send(midi_message)
 
     def listen_to_note(self):
         while True:
@@ -475,8 +550,6 @@ class MidiController:
             )
 
     def toggle_blink_note(self, note, device_id, toggle_on):
-        print(f"toggle_blink_note:\nNote: {note}\nDeviceId: {device_id}\ntoggle_on: {toggle_on}\n\n")
-
         if int(note) in self.SPECIAL_BUTTON_NOTES:
             velocity = 2 if toggle_on else 1
             self.send_midi_message("note_on", 0, note, velocity=velocity, device_id=device_id)
@@ -504,6 +577,11 @@ class MidiController:
         self.set_all_pads(109, 6)
         self.set_colors((8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 23, 28, 37, 38, 47, 51, 55, 60, 61, 62), 3, 1)
         self.set_colors((8, 11, 13, 14, 15, 16, 19, 22, 24, 25, 26, 27, 30, 32, 35, 38, 40, 43, 45, 46, 47), 3, 2)
+
+    def control_change_to_note(self, cc, value, device_id):
+        note = self.get_note_from_cc(cc, device_id)
+        print(f"cc: {cc}, note: {note} value: {value}, device_id: {device_id}")
+        self.send_midi_message("note_on", 0, note, velocity=value, device_id=100)
 
     # =================================================================
     #                          Playbacks
@@ -555,7 +633,6 @@ class MidiController:
 
         old_exec_states = self.executor_states
         current_running_execs = current_running_execs | self.temporary_exec_states
-        print(f"Current running execs: {current_running_execs}")
 
         if old_exec_states == current_running_execs:
             return  # No need to continue if they're the same
@@ -566,7 +643,6 @@ class MidiController:
         for executor in old_current_symmetry:
             turned_on = executor in current_running_execs
             for note, device_id in self.executor_note_dictionary[executor]:
-                print(f"Note {'ON' if turned_on else 'OFF'}: {note}")
                 self.toggle_blink_note(note, device_id, turned_on)
 
         self.executor_states = current_running_execs
@@ -578,23 +654,34 @@ class MidiController:
             self.dot2_ws.poll_exec_state()
 
     def note_loop(self, message, device_id):
-        note = message.note
-        if int(note) in self.FADER_NOTES:
-            return
+        if message.type == "control_change":
+            if self.config_mode:
+                self.link_cc_note(message.control, device_id)
+                return
 
-        if message.type == 'note_on' and self.config_mode:
-            self.link_executor_note(note, device_id)
-            return
+            cc_note_dict = (
+                self.cc_note_dictionary_device1 if device_id == 1
+                else self.cc_note_dictionary_device2
+            )
 
-        note_executor_dict = (
-            self.note_executor_dictionary_device1 if device_id == 1
-            else self.note_executor_dictionary_device2
-        )
+            if str(message.control) in cc_note_dict:
+                self.control_change_to_note(cc=message.control, value=message.value, device_id=device_id)
 
-        if str(note) in note_executor_dict:
-            executor_index = note_executor_dict[str(note)]["executor_index"]
-            self.dot2_ws.send_playback_click(executor_index, pressed=message.velocity == 127)
-            self.dot2_ws.poll_exec_state()
+        elif message.type == "note_on" or message.type == "note_off":
+            note = message.note
+            if message.type == 'note_on' and self.config_mode:
+                self.link_executor_note(note, device_id)
+                return
+
+            note_executor_dict = (
+                self.note_executor_dictionary_device1 if device_id == 1
+                else self.note_executor_dictionary_device2
+            )
+
+            if str(note) in note_executor_dict:
+                executor_index = note_executor_dict[str(note)]["executor_index"]
+                self.dot2_ws.send_playback_click(executor_index, pressed=message.velocity == 127)
+                self.dot2_ws.poll_exec_state()
 
     # =================================================================
     #                      Setup / Run / Lifecycle
@@ -626,7 +713,7 @@ class MidiController:
             fwing_view=self.FWING_VIEW,
             fwing_exec_view_mode=self.FWING_EXEC_VIEW_MODE,
 
-            debug=True,
+            debug=False,
         )
         self.dot2_ws.connect()
 
