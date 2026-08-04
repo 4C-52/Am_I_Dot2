@@ -10,7 +10,7 @@ class Dot2WebSocketHandler:
                  username="remote",
                  password="1",
                  heartbeat_step=10,
-                 debug=False,
+                 debug=True,
 
                  bwing_start_index=[300, 400, 500, 600, 700, 800],
                  bwing_items_count=[16, 16, 16, 16, 16, 16],
@@ -252,7 +252,7 @@ class Dot2WebSocketHandler:
         }
         self._send(payload)
 
-    def send_playback_fader(self, fader_index, fader_value, page_index=1, type=1):
+    def send_playback_fader(self, fader_index, fader_value, page_index=0, type=1):
         if not self.logged_in or self.session_id is None:
             if self.DEBUG:
                 print("Not ready; cannot send userInput yet.")
@@ -262,7 +262,7 @@ class Dot2WebSocketHandler:
             "requestType": "playbacks_userInput",
             "execIndex": fader_index,
             "pageIndex": page_index,
-            "faderValue": fader_value / 127,
+            "faderValue": fader_value,
             "type": type,
             "session": self.session_id,
             "maxRequests": 0
