@@ -7,27 +7,14 @@ import websocket
 class Dot2WebSocketHandler:
     def __init__(self,
                  host="10.0.0.50",
-                 username="remote",
                  password="1",
                  heartbeat_step=10,
                  debug=True,
-
-                 bwing_start_index=[300, 400, 500, 600, 700, 800],
-                 bwing_items_count=[16, 16, 16, 16, 16, 16],
-                 bwing_items_type=[3, 3, 3, 3, 3, 3],
-                 bwing_view=3,
-                 bwing_exec_view_mode=2,
-
-                 fwing_start_index=[0, 100, 200],
-                 fwing_items_count=[22, 22, 22],
-                 fwing_items_type=[2, 3, 3],
-                 fwing_view=3,
-                 fwing_exec_view_mode=2,
                  ):
         self.HOST = host
         self.URL = f"ws://{self.HOST}/?ma=1"
         self.ORIGIN = f"http://{self.HOST}"
-        self.USERNAME = username
+        self.USERNAME = "remote"
         self.PLAINTEXT_PASSWORD = password
         self.PASSWORD_MD5 = hashlib.md5(self.PLAINTEXT_PASSWORD.encode("utf-8")).hexdigest()
         self.HEARTBEAT_STEP = heartbeat_step
@@ -46,17 +33,17 @@ class Dot2WebSocketHandler:
         self._one_shot_callbacks = {}
         self._callbacks_lock = threading.Lock()
 
-        self.BWING_START_INDEX = bwing_start_index
-        self.BWING_ITEMS_COUNT = bwing_items_count
-        self.BWING_ITEMS_TYPE = bwing_items_type
-        self.BWING_VIEW = bwing_view
-        self.BWING_EXEC_VIEW_MODE = bwing_exec_view_mode
+        self.BWING_START_INDEX = [300, 400, 500, 600, 700, 800]
+        self.BWING_ITEMS_COUNT = [16, 16, 16, 16, 16, 16]
+        self.BWING_ITEMS_TYPE = [3, 3, 3, 3, 3, 3]
+        self.BWING_VIEW = 3
+        self.BWING_EXEC_VIEW_MODE = 2
 
-        self.FWING_START_INDEX = fwing_start_index
-        self.FWING_ITEMS_COUNT = fwing_items_count
-        self.FWING_ITEMS_TYPE = fwing_items_type
-        self.FWING_VIEW = fwing_view
-        self.FWING_EXEC_VIEW_MODE = fwing_exec_view_mode
+        self.FWING_START_INDEX = [0, 100, 200]
+        self.FWING_ITEMS_COUNT = [22, 22, 22]
+        self.FWING_ITEMS_TYPE = [2, 3, 3]
+        self.FWING_VIEW = 2
+        self.FWING_EXEC_VIEW_MODE = 1
 
     ###################################################
     #                    Callbacks                    #
