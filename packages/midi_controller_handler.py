@@ -40,6 +40,23 @@ class MidiControllerHandler:
             MidiController(2, {}, self.gui_instances[1], self.websocket_callback),
         ]
 
+    def setup(self):
+        self.load_json()
+        for c in self.controllers:
+            c.select_midi_ports()
+        self.dot2_ws = Dot2WebSocketHandler(
+            host=self.data.get("default_ip_address", "10.0.0.50"),
+            password=self.data.get("dot2_password", "1"),
+            heartbeat_step=self.HEARTBEAT_STEP,
+            debug=True,
+        )
+        self.dot2_ws.connect()
+        self.dot2_ws.on("playbacks", self.handle_playbacks)
+        self.load_labels()
+        self.load_colors()
+        keyboard.add_hotkey("F1", self.invert_devices)
+        keyboard.add_hotkey("F2", self.toggle_config_mode)
+
     def _read_data_file(self):
         with open(self.DATA_FILEPATH) as f:
             return json.load(f)
@@ -105,21 +122,9 @@ class MidiControllerHandler:
         for c in self.controllers:
             c.load_labels()
 
-    def setup(self):
-        self.load_json()
+    def load_colors(self):
         for c in self.controllers:
-            c.select_midi_ports()
-        self.dot2_ws = Dot2WebSocketHandler(
-            host=self.data.get("default_ip_address", "10.0.0.50"),
-            password=self.data.get("dot2_password", "1"),
-            heartbeat_step=self.HEARTBEAT_STEP,
-            debug=True,
-        )
-        self.dot2_ws.connect()
-        self.dot2_ws.on("playbacks", self.handle_playbacks)
-        self.load_labels()
-        keyboard.add_hotkey("F1", self.invert_devices)
-        keyboard.add_hotkey("F2", self.toggle_config_mode)
+            c.update_colors()
 
     def imitate_midi_message(
         self, device_id, type, channel, note=None, velocity=None, cc=None, value=None

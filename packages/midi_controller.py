@@ -288,6 +288,7 @@ class MidiController:
         message = self.midi_inport.receive()
         while message.type != "note_on" or message.note not in self.NORMAL_BUTTON_NOTES:
             message = self.midi_inport.receive()
+        self.update_colors()
         return self.BUTTON_COLORS[message.note]
 
     def append_note(self, note, executor_index, short_label, long_label, color=None):
