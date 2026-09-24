@@ -1,6 +1,6 @@
 """Entry point: sets up the MidiController and starts the main loop."""
 
-from packages.midi_controller import MidiController
+from packages.midi_controller_handler import MidiControllerHandler
 import sys
 import re
 from functools import partial
@@ -40,14 +40,13 @@ class MainApp(QMainWindow):
         self.wing1_fader_buttons = {48: self.ui.pushButton_fader48, 49: self.ui.pushButton_fader49, 50: self.ui.pushButton_fader50, 51: self.ui.pushButton_fader51, 52: self.ui.pushButton_fader52, 53: self.ui.pushButton_fader53, 54: self.ui.pushButton_fader54, 55: self.ui.pushButton_fader55, 56: self.ui.pushButton_fader56}
         self.wing2_fader_buttons = {48: self.ui.pushButton_fader48_2, 49: self.ui.pushButton_fader49_2, 50: self.ui.pushButton_fader50_2, 51: self.ui.pushButton_fader51_2, 52: self.ui.pushButton_fader52_2, 53: self.ui.pushButton_fader53_2, 54: self.ui.pushButton_fader54_2, 55: self.ui.pushButton_fader55_2, 56: self.ui.pushButton_fader56_2}
 
-        self.controller = MidiController()
-        self.controller.send_gui_instance(gui_instance=self)
-        self.controller.setup()
+        self.handler = MidiControllerHandler(gui_instances=[self, self])
+        self.handler.setup()
 
         self.assign_callbacks()
 
         self.midi_timer = QTimer()
-        self.midi_timer.timeout.connect(self.controller.poll)
+        self.midi_timer.timeout.connect(self.handler.poll)
         self.midi_timer.start(POLLING_INTERVAL)
 
     # =================================================================
@@ -141,15 +140,15 @@ class MainApp(QMainWindow):
             fader.valueChanged.connect(partial(self._on_fader_changed, cc=cc, device_id=2))
 
     def _on_fader_changed(self, value, cc, device_id):
-        self.controller.imitate_midi_message(
+        self.handler.imitate_midi_message(
             type="control_change", channel=0, cc=cc, value=value, device_id=device_id)
 
     def _on_button_pressed(self, note, device_id):
-        self.controller.imitate_midi_message(
+        self.handler.imitate_midi_message(
             type="note_on", channel=0, note=note, velocity=127, device_id=device_id)
 
     def _on_button_released(self, note, device_id):
-        self.controller.imitate_midi_message(
+        self.handler.imitate_midi_message(
             type="note_off", channel=0, note=note, velocity=0, device_id=device_id)
 
 

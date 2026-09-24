@@ -1,844 +1,95 @@
-"""
-MidiController: manages MIDI communication with two MA lighting console
-control surfaces (Wing devices), syncs colors/states with a dot2 console
-over websocket, and persists button-to-executor mappings to a JSON file.
-"""
-
-from packages.web_socket_handler import Dot2WebSocketHandler
+"""A single physical MIDI controller (one wing)."""
 from tkinter import simpledialog
-from datetime import datetime
-
 import tkinter as tk
 import mido
-import psutil
-import os
-import glob
 import json
 import time
-import shutil
-import pygetwindow
-import keyboard
-import threading
-import subprocess
 
 class MidiController:
-
-    # ---- Class-level constants (do not change between instances) ----
     FADER_NOTES = tuple(range(81, 99))
     NORMAL_BUTTON_NOTES = tuple(range(65))
-    SPECIAL_BUTTON_NOTES = (100, 101, 102, 103, 104, 105, 106, 107,
-                             112, 113, 114, 115, 116, 117, 118, 119)
+    SPECIAL_BUTTON_NOTES = (100,101,102,103,104,105,106,107,112,113,114,115,116,117,118,119)
     SHIFT_KEY = 122
-
-    BUTTON_COLORS_DEVICE1 = list(range(0, 64))
-    BUTTON_COLORS_DEVICE2 = list(range(64, 128))
-    NOTE_COLOR_MAP = {0: '#000000', 1: '#1E1E1E', 2: '#7F7F7F', 3: '#FFFFFF', 4: '#FF4C4C', 5: '#FF0000', 6: '#590000', 7: '#190000', 8: '#FFBD6C', 9: '#FF5400', 10: '#591D00', 11: '#271B00', 12: '#FFFF4C', 13: '#FFFF00', 14: '#595900', 15: '#191900', 16: '#88FF4C', 17: '#54FF00', 18: '#1D5900', 19: '#142B00', 20: '#4CFF4C', 21: '#00FF00', 22: '#005900', 23: '#001900', 24: '#4CFF5E', 25: '#00FF19', 26: '#00590D', 27: '#001902', 28: '#4CFF88', 29: '#00FF55', 30: '#00591D', 31: '#001F12', 32: '#4CFFB7', 33: '#00FF99', 34: '#005935', 35: '#001912', 36: '#4CC3FF', 37: '#00A9FF', 38: '#004152', 39: '#001019', 40: '#4C88FF', 41: '#0055FF', 42: '#001D59', 43: '#000819', 44: '#4C4CFF', 45: '#0000FF', 46: '#000059', 47: '#000019', 48: '#874CFF', 49: '#5400FF', 50: '#190064', 51: '#0F0030', 52: '#FF4CFF', 53: '#FF00FF', 54: '#590059', 55: '#190019', 56: '#FF4C87', 57: '#FF0054', 58: '#59001D', 59: '#220013', 60: '#FF1500', 61: '#993500', 62: '#795100', 63: '#436400', 64: '#033900', 65: '#005735', 66: '#00547F', 67: '#0000FF', 68: '#00454F', 69: '#2500CC', 70: '#7F7F7F', 71: '#202020', 72: '#FF0000', 73: '#BDFF2D', 74: '#AFED06', 75: '#64FF09', 76: '#108B00', 77: '#00FF87', 78: '#00A9FF', 79: '#002AFF', 80: '#3F00FF', 81: '#7A00FF', 82: '#B21A7D', 83: '#402100', 84: '#FF4A00', 85: '#88E106', 86: '#72FF15', 87: '#00FF00', 88: '#3BFF26', 89: '#59FF71', 90: '#38FFCC', 91: '#5B8AFF', 92: '#3151C6', 93: '#877FE9', 94: '#D31DFF', 95: '#FF005D', 96: '#FF7F00', 97: '#B9B000', 98: '#90FF00', 99: '#835D07', 100: '#392b00', 101: '#144C10', 102: '#0D5038', 103: '#15152A', 104: '#16205A', 105: '#693C1C', 106: '#A8000A', 107: '#DE513D', 108: '#D86A1C', 109: '#FFE126', 110: '#9EE12F', 111: '#67B50F', 112: '#1E1E30', 113: '#DCFF6B', 114: '#80FFBD', 115: '#9A99FF', 116: '#8E66FF', 117: '#404040', 118: '#757575', 119: '#E0FFFF', 120: '#A00000', 121: '#350000', 122: '#1AD000', 123: '#074200', 124: '#B9B000', 125: '#3F3100', 126: '#B35F00', 127: '#4B1502'}
-
-    HEARTBEAT_STEP = 10
-    PERIODIC_PLAYBACK_INTERVAL = 3  # in seconds
-
-    BWING_START_INDEX = [300, 400, 500, 600, 700, 800]
-    BWING_ITEMS_COUNT = [16, 16, 16, 16, 16, 16]
-    BWING_ITEMS_TYPE = [3, 3, 3, 3, 3, 3]
-    BWING_VIEW = 3
-    BWING_EXEC_VIEW_MODE = 2
-
-    FWING_START_INDEX = [0, 100, 200]
-    FWING_ITEMS_COUNT = [22, 22, 22]
-    FWING_ITEMS_TYPE = [2, 3, 3]
-    FWING_VIEW = 2
-    FWING_EXEC_VIEW_MODE = 1
-
-    USERNAME = "remote"
-
-    DATA_FILEPATH = "data/data.json"
-
-    def __init__(self, data_filepath=None):
-        self.DATA_FILEPATH = data_filepath or self.DATA_FILEPATH
-
-        # MIDI ports
-        self.midi_inport_device1 = None
-        self.midi_outport_device1 = None
-        self.midi_inport_device2 = None
-        self.midi_outport_device2 = None
-
-        self.default_midi_inport_device1 = ""
-        self.default_midi_outport_device1 = ""
-        self.default_midi_inport_device2 = ""
-        self.default_midi_outport_device2 = ""
-        self.inverted_devices = False
-
-        # Data loaded from JSON
-        self.note_executor_dictionary_device1 = {}
-        self.note_executor_dictionary_device2 = {}
-        self.executor_note_dictionary = {}
-        self.executor_states = set()
-        self.temporary_exec_states = set()
-        self.cc_fader_index_dictionary_device1 = {}
-        self.cc_fader_index_dictionary_device2 = {}
-        self.fader_last_value_dictionary_device1 = {}
-        self.fader_last_value_dictionary_device2 = {}
-
+    NOTE_COLOR_MAP = {0:'#000000',1:'#1E1E1E',2:'#7F7F7F',3:'#FFFFFF',4:'#FF4C4C',5:'#FF0000',6:'#590000',7:'#190000',8:'#FFBD6C',9:'#FF5400',10:'#591D00',11:'#271B00',12:'#FFFF4C',13:'#FFFF00',14:'#595900',15:'#191900',16:'#88FF4C',17:'#54FF00',18:'#1D5900',19:'#142B00',20:'#4CFF4C',21:'#00FF00',22:'#005900',23:'#001900',24:'#4CFF5E',25:'#00FF19',26:'#00590D',27:'#001902',28:'#4CFF88',29:'#00FF55',30:'#00591D',31:'#001F12',32:'#4CFFB7',33:'#00FF99',34:'#005935',35:'#001912',36:'#4CC3FF',37:'#00A9FF',38:'#004152',39:'#001019',40:'#4C88FF',41:'#0055FF',42:'#001D59',43:'#000819',44:'#4C4CFF',45:'#0000FF',46:'#000059',47:'#000019',48:'#874CFF',49:'#5400FF',50:'#190064',51:'#0F0030',52:'#FF4CFF',53:'#FF00FF',54:'#590059',55:'#190019',56:'#FF4C87',57:'#FF0054',58:'#59001D',59:'#220013',60:'#FF1500',61:'#993500',62:'#795100',63:'#436400',64:'#033900',65:'#005735',66:'#00547F',67:'#0000FF',68:'#00454F',69:'#2500CC',70:'#7F7F7F',71:'#202020',72:'#FF0000',73:'#BDFF2D',74:'#AFED06',75:'#64FF09',76:'#108B00',77:'#00FF87',78:'#00A9FF',79:'#002AFF',80:'#3F00FF',81:'#7A00FF',82:'#B21A7D',83:'#402100',84:'#FF4A00',85:'#88E106',86:'#72FF15',87:'#00FF00',88:'#3BFF26',89:'#59FF71',90:'#38FFCC',91:'#5B8AFF',92:'#3151C6',93:'#877FE9',94:'#D31DFF',95:'#FF005D',96:'#FF7F00',97:'#B9B000',98:'#90FF00',99:'#835D07',100:'#392b00',101:'#144C10',102:'#0D5038',103:'#15152A',104:'#16205A',105:'#693C1C',106:'#A8000A',107:'#DE513D',108:'#D86A1C',109:'#FFE126',110:'#9EE12F',111:'#67B50F',112:'#1E1E30',113:'#DCFF6B',114:'#80FFBD',115:'#9A99FF',116:'#8E66FF',117:'#404040',118:'#757575',119:'#E0FFFF',120:'#A00000',121:'#350000',122:'#1AD000',123:'#074200',124:'#B9B000',125:'#3F3100',126:'#B35F00',127:'#4B1502'}
+    def __init__(self, controller_id, data, gui_instance=None, websocket_callback=None):
+        self.controller_id = controller_id
+        self.gui_instance = gui_instance
+        self.websocket_callback = websocket_callback
+        self.midi_inport = None
+        self.midi_outport = None
+        self.data = data or {}
+        self.note_executor_dictionary = self.data.setdefault("executors", {})
+        self.cc_fader_index_dictionary = self.data.setdefault("cc_faders", {})
+        self.default_midi_inport = self.data.get("default", "")
+        self.default_midi_outport = self.data.get("default", "")
+        self.fader_last_value_dictionary = {str(cc): 0.0 for cc in self.cc_fader_index_dictionary}
         self.default_brightness_level = 6
         self.default_blink_channel = 10
-        self.config_mode = 0
-
-        # Dot2 connection info (populated by load_json)
-        self.host = "192.168.0.6"
-        self.plaintext_password = "1"
-
-        self.dot2_ws = None
-        self._playback_poll_thread = None
-
-        # GUI
-        self.gui_instance = None
-
-# =================================================================
-#                         Tools / Utils
-# =================================================================
-
+        self.BUTTON_COLORS = list(range(0,64)) if controller_id == 1 else list(range(64,128))
+    def send_gui_instance(self, gui_instance): self.gui_instance = gui_instance
     @staticmethod
     def ask_input(prompt=""):
-        """Opens a small Tkinter dialog to ask the user for text input."""
-        root = tk.Tk()
-        root.withdraw()
-        result = simpledialog.askstring("Input", prompt)
-        print(result)
-        root.destroy()
-        return result
-
-    def invert_devices(self):
-        (self.midi_inport_device1, self.midi_inport_device2) = \
-            (self.midi_inport_device2, self.midi_inport_device1)
-        (self.midi_outport_device1, self.midi_outport_device2) = \
-            (self.midi_outport_device2, self.midi_outport_device1)
-
-        self.inverted_devices = not self.inverted_devices
-        self.update_colors()
-
-    @staticmethod
-    def get_last_backup(backup_directory_path):
-        backups = glob.glob(os.path.join(backup_directory_path, "data_backup_*.json"))
-        if not backups:
-            return None
-        backups.sort()  # timestamp format YYYY-MM-DD_HH-MM sorts correctly as strings
-        return backups[-1]
-
-    def restore_last_backup(self):
-        backup_directory_path = os.path.join(
-            os.path.dirname(os.path.abspath(self.DATA_FILEPATH)), "../backups"
-        )
-        last_backup = self.get_last_backup(backup_directory_path)
-
-        if not last_backup:
-            print("No backup found to restore.")
-            return
-
-        if not self._confirm_destructive_action(
-            "Are you sure you want to load the last backup?(Y/N) \n"
-            "YOUR CURRENT COLORS WILL BE OVERWRITTEN."
-        ):
-            return
-
-        shutil.copy2(last_backup, self.DATA_FILEPATH)
-
-        self.load_json()
-        self.update_colors()
-
-    def _confirm_destructive_action(self, warning_prompt):
-        """
-        Shared confirmation flow used by destructive actions:
-        first a Y/N prompt, then a typed "CONFIRM" prompt.
-        Returns True only if both steps pass.
-        """
-        if self.ask_input(warning_prompt).lower() == "y":
-            if self.ask_input('Type "CONFIRM" to proceed. Your current file will be LOST.') != "CONFIRM":
-                return False
-            return True
-        return False
-
-    def initiate_executor_note_dictionary(self):
-        """
-        Builds a reverse-lookup dict:
-        {"executor_id": [[note, device_id], [note, device_id], ...], ...}
-        This allows multiple notes to be mapped to the same executor.
-        """
-        self.executor_note_dictionary = {}
-
-        for note, entry in self.note_executor_dictionary_device1.items():
-            executor = entry["executor_index"]
-            self.executor_note_dictionary.setdefault(executor, []).append([note, 1])
-
-        for note, entry in self.note_executor_dictionary_device2.items():
-            executor = entry["executor_index"]
-            self.executor_note_dictionary.setdefault(executor, []).append([note, 2])
-
-    def initiate_last_value_dictionary(self):
-        for cc in self.cc_fader_index_dictionary_device1.keys():
-            self.fader_last_value_dictionary_device1[cc]=0.0
-        for cc in self.cc_fader_index_dictionary_device2.keys():
-            self.fader_last_value_dictionary_device2[cc] = 0.0
-
-    def is_process_running(self, process_name):
-        for proc in psutil.process_iter(['name']):
-            try:
-                if process_name.lower() in proc.info['name'].lower():
-                    matching_windows = []
-                    while not matching_windows:
-                        matching_windows = [
-                            window for window in pygetwindow.getAllWindows()
-                            if process_name.lower() in window.title.lower()
-                        ]
-                        if matching_windows:
-                            return True
-                        time.sleep(0.1)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-        return False
-
-    def is_dot2_running(self):
-        return self.is_process_running("dot2")
-
-    def run_dot2(self):
-        while not self.is_dot2_running():
-            print("Not running dot2")
-            subprocess.Popen([r"C:\Program Files (x86)\MA Lighting Technologies\dot2\dot2onpc_1.9.0\bin\dot2_onpc.exe"])
-
-# =================================================================
-#                            GUI Actions
-# =================================================================
-
-    def send_gui_instance(self, gui_instance):
-        self.gui_instance = gui_instance
-
+        root=tk.Tk(); root.withdraw(); result=simpledialog.askstring("Input",prompt); print(result); root.destroy(); return result
     def ask_labels(self):
-        short_label = self.ask_input("Please Input the \"Short\" Label")
-        long_label = self.ask_input("Please Input the \"Long\" Label")
-        if long_label is None:
-            long_label = short_label
-        return short_label, long_label
-
+        short_label=self.ask_input('Please Input the "Short" Label'); long_label=self.ask_input('Please Input the "Long" Label')
+        return short_label, (short_label if long_label is None else long_label)
+    def load_data(self, data):
+        self.data=data or {}; self.note_executor_dictionary=self.data.setdefault("executors",{}); self.cc_fader_index_dictionary=self.data.setdefault("cc_faders",{}); self.default_midi_inport=self.data.get("default",""); self.default_midi_outport=self.default_midi_inport; self.fader_last_value_dictionary={str(cc):0.0 for cc in self.cc_fader_index_dictionary}
+    def get_persisted_data(self):
+        self.data["executors"]=self.note_executor_dictionary; self.data["cc_faders"]=self.cc_fader_index_dictionary; self.data["default"]=self.default_midi_inport; return self.data
     def load_labels(self):
-        for button_id, data in self.note_executor_dictionary_device1.items():
-            if data.get("short_label", None) is not None:
-                self.set_button_label(button_id=button_id,
-                                      device_id=1,
-                                      short_label=data["short_label"],
-                                      long_label=data["long_label"] if data.get("long_label", None) is not None or data.get("Long_label", None) != "" else data["short_label"])
-
-    def set_button_label(self, button_id, device_id, short_label, long_label):
-        self.gui_instance.set_button_label(button_id=int(button_id),
-                                           device_id=int(device_id),
-                                           short_label=short_label,
-                                           long_label=long_label
-                                           )
-
-    def set_gui_button_color(self, button_id, device_id, color_note):
-        self.gui_instance.set_button_color(button_id=int(button_id),
-                                           device_id=int(device_id),
-                                           hex_color=self.get_hex_color_from_note(note=color_note))
-
-    def set_gui_fader_value(self, fader_id, device_id, value):
-        self.gui_instance.set_fader_value(fader_id=fader_id,
-                                          device_id=device_id,
-                                          value=value)
-
-# =================================================================
-#                            JSON
-# =================================================================
-
-    def load_json(self):
-        with open(self.DATA_FILEPATH, "r") as f:
-            data = json.load(f)
-
-        self.note_executor_dictionary_device1 = data["note_executor_dictionary_device1"]
-        self.note_executor_dictionary_device2 = data["note_executor_dictionary_device2"]
-        self.cc_fader_index_dictionary_device1 = data["cc_fader_index_dictionary_device1"]
-        self.cc_fader_index_dictionary_device2 = data["cc_fader_index_dictionary_device2"]
-        self.default_brightness_level = data["default_brightness_level"]
-        self.default_blink_channel = data["default_blink_channel"]
-        self.host = data["default_ip_address"]
-        self.plaintext_password = data["dot2_password"]
-        self.config_mode = data["config_mode"]
-
-        if data["DEFAULT_MIDI_INPORT_DEVICE1"] != "":
-            self.default_midi_inport_device1 = data["DEFAULT_MIDI_INPORT_DEVICE1"]
-
-        if data["DEFAULT_MIDI_OUTPORT_DEVICE1"] != "":
-            self.default_midi_outport_device1 = data["DEFAULT_MIDI_OUTPORT_DEVICE1"]
-
-        if data["DEFAULT_MIDI_INPORT_DEVICE2"] != "":
-            self.default_midi_inport_device2 = data["DEFAULT_MIDI_INPORT_DEVICE2"]
-
-        if data["DEFAULT_MIDI_OUTPORT_DEVICE2"] != "":
-            self.default_midi_outport_device2 = data["DEFAULT_MIDI_OUTPORT_DEVICE2"]
-
-    def _read_data_file(self):
-        with open(self.DATA_FILEPATH, "r") as f:
-            return json.load(f)
-
-    def _write_data_file(self, data):
-        with open(self.DATA_FILEPATH, "w") as f:
-            json.dump(data, f, indent=2)
-
-    def append_note_to_json(self, note, executor_index, device_id, short_label, long_label, color=None):
-        data = self._read_data_file()
-
-        entry = {"executor_index": executor_index}
-        if color is not None:
-            entry["color"] = color
-        if short_label is not None:
-            entry["short_label"] = short_label
-        if long_label is not None:
-            entry["long_label"] = long_label
-        else:
-            entry["long_label"] = short_label
-
-
-        if device_id == 1:
-            data["note_executor_dictionary_device1"][str(note)] = entry
-        elif device_id == 2:
-            data["note_executor_dictionary_device2"][str(note)] = entry
-
-        data["note_executor_dictionary_device1"] = dict(
-            sorted(data["note_executor_dictionary_device1"].items(), key=lambda x: int(x[0]))
-        )
-        data["note_executor_dictionary_device2"] = dict(
-            sorted(data["note_executor_dictionary_device2"].items(), key=lambda x: int(x[0]))
-        )
-
-        self._write_data_file(data)
-
-    def append_cc_to_json(self, cc, note, device_id):
-        data = self._read_data_file()
-
-        if device_id == 1:
-            data["cc_fader_index_dictionary_device1"][str(cc)] = note
-        elif device_id == 2:
-            data["cc_fader_index_dictionary_device2"][str(cc)] = note
-
-        data["cc_fader_index_dictionary_device1"] = dict(
-            sorted(data["cc_fader_index_dictionary_device1"].items(), key=lambda x: int(x[0]))
-        )
-        data["cc_fader_index_dictionary_device2"] = dict(
-            sorted(data["cc_fader_index_dictionary_device2"].items(), key=lambda x: int(x[0]))
-        )
-
-        self._write_data_file(data)
-
-    def set_default_devices(self, device1_input="", device1_output="", device2_input="", device2_output=""):
-        data = self._read_data_file()
-
-        if device1_input != "":
-            data["DEFAULT_MIDI_INPORT_DEVICE1"] = device1_input
-        if device2_input != "":
-            data["DEFAULT_MIDI_INPORT_DEVICE2"] = device2_input
-        if device1_output != "":
-            data["DEFAULT_MIDI_OUTPORT_DEVICE1"] = device1_output
-        if device2_output != "":
-            data["DEFAULT_MIDI_OUTPORT_DEVICE2"] = device2_output
-
-        self._write_data_file(data)
-
-    def toggle_config_mode(self):
-        self.config_mode = not self.config_mode
-
-        data = self._read_data_file()
-
-        if self.config_mode:
-            self.flash_color(2, 5)
-            data["config_mode"] = 1
-        else:
-            self.flash_color(2, 21)
-            data["config_mode"] = 0
-
-        self._write_data_file(data)
-
-    def remove_color_from_data(self):
-        self.flash_color(2, 120)
-
-        if not self._confirm_destructive_action(
-            "Are you sure you want to remove all colors?(Y/N) \nA backup will be created."
-        ):
-            return
-
-        self._backup_data_file()
-
-        data = self._read_data_file()
-
-        for note in data["note_executor_dictionary_device1"]:
-            data["note_executor_dictionary_device1"][note]["color"] = -1
-        for note in data["note_executor_dictionary_device2"]:
-            data["note_executor_dictionary_device2"][note]["color"] = -1
-
-        self._write_data_file(data)
-
-        self.load_json()
-        self.update_colors()
-
-    def _backup_data_file(self):
-        timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%M")  # no colons!
-
-        base_dir = os.path.dirname(os.path.abspath(self.DATA_FILEPATH))
-        backup_directory_path = os.path.join(base_dir, "../backups")
-        backup_filepath = os.path.join(backup_directory_path, f"data_backup_{timestamp}.json")
-
-        os.makedirs(backup_directory_path, exist_ok=True)
-        shutil.copy2(self.DATA_FILEPATH, backup_filepath)
-
-    def link_executor_note(self, note, device_id):
-        """
-        Updates the data.json file
-        :param note: the MIDI note number to link
-        :param device_id: the device ID to link the executor to
-        """
-        if device_id == 1 and str(note) in self.note_executor_dictionary_device1:
-            executor_index = self.note_executor_dictionary_device1[str(note)]["executor_index"]
-        elif device_id == 2 and str(note) in self.note_executor_dictionary_device2:
-            executor_index = self.note_executor_dictionary_device2[str(note)]["executor_index"]
-        else:
-            temp = self.ask_input("Please input the id of the executor")
-            if temp is None:
-                return
-            executor_index = int(temp) - 1
-
-        short_label, long_label = self.ask_labels()
-
-        if note in self.NORMAL_BUTTON_NOTES:
-            color = self.choose_color()
-            self.append_note_to_json(note, executor_index, device_id=device_id, color=color, short_label=short_label, long_label=long_label)
-
-        elif note in self.SPECIAL_BUTTON_NOTES or note == self.SHIFT_KEY:
-            self.append_note_to_json(note, executor_index, device_id=device_id, color=1, short_label=short_label, long_label=long_label)
-
-        self.set_button_label(button_id=note, device_id=device_id, short_label=short_label, long_label=long_label)
-        self.load_json()
-        self.update_colors()
-
-    def get_fader_index_from_cc(self, cc, device_id):
-        if device_id == 1 and str(cc) in self.cc_fader_index_dictionary_device1.keys():
-            return self.cc_fader_index_dictionary_device1[str(cc)]
-        elif device_id == 2 and str(cc) in self.cc_fader_index_dictionary_device2.keys():
-            return self.cc_fader_index_dictionary_device2[str(cc)]
-
-    def link_cc_note(self, cc, device_id):
-        """
-        Updates the data.json file
-        :param cc: control change id
-        :param device_id:
-        :return:
-        """
-        note = int(self.ask_input("Please input the id of the note"))
-        self.append_cc_to_json(cc=cc, note=note, device_id=device_id)
-        self.load_json()
-
-    def get_hex_color_from_note(self, note):
-        return self.NOTE_COLOR_MAP.get(int(note), None)
-
-# =================================================================
-#                            MIDI
-# =================================================================
-
-    def _prompt_for_port(self, port_names, label):
-        print(f"Please select the {label}\n",
-              '\n '.join(f"{i + 1}- {item}" for i, item in enumerate(port_names)))
-        choice = port_names[int(self.ask_input("Please select an available port")) - 1]
-        return choice
-
+        for button_id,data in self.note_executor_dictionary.items():
+            if data.get("short_label") is not None: self.set_button_label(button_id, data["short_label"], data.get("long_label") or data["short_label"])
+    def set_button_label(self, button_id, short_label, long_label): self.gui_instance.set_button_label(button_id=int(button_id), short_label=short_label, long_label=long_label)
+    def set_gui_button_color(self, button_id, color_note): self.gui_instance.set_button_color(button_id=int(button_id), hex_color=self.get_hex_color_from_note(color_note))
+    def set_gui_fader_value(self, fader_id, value): self.gui_instance.set_fader_value(fader_id=fader_id, value=value)
+    def get_hex_color_from_note(self,note): return self.NOTE_COLOR_MAP.get(int(note))
+    def _prompt_for_port(self,names,label):
+        print(f"Please select the {label}\n", '\n '.join(f"{i+1}- {x}" for i,x in enumerate(names))); return names[int(self.ask_input("Please select an available port"))-1]
     def select_midi_ports(self):
-        available_inputs = mido.get_input_names()
-        available_outputs = mido.get_output_names()
-
-        # --- Input Device 1 ---
-        if self.default_midi_inport_device1 not in available_inputs:
-            temp = self._prompt_for_port(available_inputs, "first device Input(Wing-1)")
-            self.midi_inport_device1 = mido.open_input(temp)
-            available_inputs.remove(temp)
-            self.default_midi_inport_device1 = temp
-        else:
-            self.midi_inport_device1 = mido.open_input(self.default_midi_inport_device1)
-
-        # --- Input Device 2 ---
-        if self.default_midi_inport_device2 not in available_inputs:
-            temp = self._prompt_for_port(available_inputs, "second device Input(Wing-2)")
-            self.midi_inport_device2 = mido.open_input(temp)
-            self.default_midi_inport_device2 = temp
-        else:
-            self.midi_inport_device2 = mido.open_input(self.default_midi_inport_device2)
-
-        # --- Output Device 1 ---
-        if self.default_midi_outport_device1 not in available_outputs:
-            temp = self._prompt_for_port(available_outputs, "first device Output(Wing-1)")
-            self.midi_outport_device1 = mido.open_output(temp)
-            available_outputs.remove(temp)
-            self.default_midi_outport_device1 = temp
-        else:
-            self.midi_outport_device1 = mido.open_output(self.default_midi_outport_device1)
-
-        # --- Output Device 2 ---
-        if self.default_midi_outport_device2 not in available_outputs:
-            temp = self._prompt_for_port(available_outputs, "second device Output(Wing-2)")
-            self.midi_outport_device2 = mido.open_output(temp)
-            self.default_midi_outport_device2 = temp
-        else:
-            self.midi_outport_device2 = mido.open_output(self.default_midi_outport_device2)
-
-        self.set_default_devices(
-            device1_input=self.default_midi_inport_device1,
-            device2_input=self.default_midi_inport_device2,
-            device1_output=self.default_midi_outport_device1,
-            device2_output=self.default_midi_outport_device2,
-        )
-        print(
-            f"Midi Device IN 1: {self.midi_inport_device1}\n"
-            f"Midi Device IN 2: {self.midi_inport_device2}\n"
-            f"MIDI Device OUT 1: {self.midi_outport_device1}\n"
-            f"MIDI Device OUT 2: {self.midi_outport_device2}\n"
-        )
-
-    def flash_color(self, duration, color):
-        self.set_all_pads(velocity=color, channel=11)
-        time.sleep(duration)
-        self.update_colors()
-
-    def set_all_pads(self, velocity=0, channel=None):
-        channel = self.default_brightness_level if channel is None else channel
-        for pad in self.NORMAL_BUTTON_NOTES:
-            self.send_midi_message(midi_message_type="note_on", channel=channel, note=pad, velocity=velocity)
-
-    def send_midi_message(self, midi_message_type, channel, note, velocity, device_id=3):
-        midi_message = mido.Message(
-            type=str(midi_message_type), channel=int(channel), note=int(note), velocity=int(velocity)
-        )
-        if device_id == 1:
-            self.midi_outport_device1.send(midi_message)
-        elif device_id == 2:
-            self.midi_outport_device2.send(midi_message)
-        elif device_id == 3:
-            self.midi_outport_device1.send(midi_message)
-            self.midi_outport_device2.send(midi_message)
-
-    def listen_to_note(self):
-        while True:
-            for incoming_message in self.midi_inport_device1.iter_pending():
-                return incoming_message, 1
-
-            for incoming_message in self.midi_inport_device2.iter_pending():
-                return incoming_message, 2
-
+        ins=mido.get_input_names(); outs=mido.get_output_names()
+        if self.default_midi_inport not in ins: self.default_midi_inport=self._prompt_for_port(ins,f"device {self.controller_id} Input")
+        if self.default_midi_outport not in outs: self.default_midi_outport=self._prompt_for_port(outs,f"device {self.controller_id} Output")
+        self.midi_inport=mido.open_input(self.default_midi_inport); self.midi_outport=mido.open_output(self.default_midi_outport)
+    def send_midi_message(self,midi_message_type,channel,note,velocity): self.midi_outport.send(mido.Message(type=str(midi_message_type),channel=int(channel),note=int(note),velocity=int(velocity)))
+    def set_all_pads(self,velocity=0,channel=None):
+        for pad in self.NORMAL_BUTTON_NOTES: self.send_midi_message("note_on",self.default_brightness_level if channel is None else channel,pad,velocity)
     def choose_color(self):
-        for pad in range(len(self.BUTTON_COLORS_DEVICE1)):
-            color = self.BUTTON_COLORS_DEVICE1[pad]
-            self.send_midi_message(
-                midi_message_type='note_on',
-                channel=self.default_brightness_level,
-                note=pad,
-                velocity=color,
-                device_id=1
-            )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=1,
-                color_note=color
-            )
-
-        for pad in range(len(self.BUTTON_COLORS_DEVICE2)):
-            color = self.BUTTON_COLORS_DEVICE1[pad]
-            self.send_midi_message(
-                midi_message_type='note_on',
-                channel=self.default_brightness_level,
-                note=pad,
-                velocity=color,
-                device_id=2
-            )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=2,
-                color_note=color
-            )
-
-        for pad in self.SPECIAL_BUTTON_NOTES:
-            self.send_midi_message(
-                midi_message_type='note_on',
-                channel=0,
-                note=pad,
-                velocity=0,
-                device_id=3
-            )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=1,
-                color_note=0
-            )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=2,
-                color_note=0
-            )
-
-        message, device_id = self.listen_to_note()
-        while message.type != 'note_on':
-            message, device_id = self.listen_to_note()
-            if message.note not in self.NORMAL_BUTTON_NOTES:
-                return -1
-        return self.BUTTON_COLORS_DEVICE1[message.note] if device_id == 1 else self.BUTTON_COLORS_DEVICE2[message.note]
-
-    def turn_off_pad(self):
-        self.set_all_pads(0, 6)
-
-        for pad in self.SPECIAL_BUTTON_NOTES:
-            self.send_midi_message(midi_message_type='note_on', channel=0, note=pad, velocity=0)
-
+        for pad,color in enumerate(self.BUTTON_COLORS): self.send_midi_message('note_on',self.default_brightness_level,pad,color); self.set_gui_button_color(pad,color)
+        for pad in self.SPECIAL_BUTTON_NOTES: self.send_midi_message('note_on',0,pad,0); self.set_gui_button_color(pad,0)
+        message=self.midi_inport.receive()
+        while message.type != 'note_on' or message.note not in self.NORMAL_BUTTON_NOTES: message=self.midi_inport.receive()
+        return self.BUTTON_COLORS[message.note]
+    def append_note(self,note,executor_index,short_label,long_label,color=None):
+        entry={"executor_index":executor_index,"color":color,"short_label":short_label,"long_label":long_label}; self.note_executor_dictionary[str(note)]=entry
+    def append_cc(self,cc,note): self.cc_fader_index_dictionary[str(cc)]=note
+    def link_executor_note(self,note):
+        entry=self.note_executor_dictionary.get(str(note)); executor_index=entry["executor_index"] if entry else int(self.ask_input("Please input the id of the executor"))-1
+        short_label,long_label=self.ask_labels(); color=self.choose_color() if note in self.NORMAL_BUTTON_NOTES else 1; self.append_note(note,executor_index,short_label,long_label,color); self.set_button_label(note,short_label,long_label)
+    def link_cc_note(self,cc): self.append_cc(cc,int(self.ask_input("Please input the id of the note")))
+    def get_fader_index_from_cc(self,cc): return self.cc_fader_index_dictionary.get(str(cc))
+    def control_change_handler(self,cc,value):
+        fader_index=self.get_fader_index_from_cc(cc); self.set_gui_fader_value(cc,value); value=round(value/127,2); last=self.fader_last_value_dictionary[str(cc)]
+        if last != value: self.websocket_callback("fader",fader_index,value); self.fader_last_value_dictionary[str(cc)]=value
+    def toggle_blink_note(self,note,toggle_on):
+        entry=self.note_executor_dictionary.get(str(note));
+        if not entry or entry.get("color",-1)<0: return
+        self.send_midi_message("note_on",self.default_blink_channel if toggle_on else self.default_brightness_level,note,entry["color"])
     def update_colors(self):
-        """Updates all colors of the pad including special buttons."""
-        self.turn_off_pad()
-        note_executor_dictionaries = [
-            self.note_executor_dictionary_device1,
-            self.note_executor_dictionary_device2,
-        ]
-
-        for device in range(2):
-            for button_note, entry in note_executor_dictionaries[device].items():
-                color = entry["color"]
-                if color < 0:
-                    continue
-
-                if int(button_note) in self.NORMAL_BUTTON_NOTES:
-                    self.send_midi_message(
-                        midi_message_type='note_on',
-                        channel=self.default_brightness_level,
-                        note=button_note, velocity=color, device_id=device + 1
-                    )
-                    self.set_gui_button_color(button_id=button_note,
-                                               device_id=device + 1,
-                                               color_note=color)
-
-                elif int(button_note) in self.SPECIAL_BUTTON_NOTES:
-                    # Channel 0 is the only channel that should be used with special buttons
-                    self.send_midi_message(
-                        midi_message_type='note_on', channel=0,
-                        note=button_note, velocity=1, device_id=device + 1
-                    )
-                    self.set_gui_button_color(button_id=button_note,
-                                               device_id=device + 1,
-                                               color_note=21 if int(button_note) > 111 else 5)
-
-        self.update_all_blinking()
-
-    def set_colors(self, note_list, color, device_id):
-        for note in note_list:
-            self.send_midi_message(
-                "note_on", self.default_brightness_level, note, velocity=color, device_id=device_id
-            )
-
-    def toggle_blink_note(self, note, device_id, toggle_on):
-        if int(note) in self.SPECIAL_BUTTON_NOTES:
-            velocity = 2 if toggle_on else 1
-            self.send_midi_message("note_on", 0, note, velocity=velocity, device_id=device_id)
-
-        elif int(note) in self.NORMAL_BUTTON_NOTES:
-            if device_id == 1:
-                color = self.note_executor_dictionary_device1[str(note)]["color"]
-            elif device_id == 2:
-                color = self.note_executor_dictionary_device2[str(note)]["color"]
-            else:
-                return
-
-            if color == -1:
-                return
-
-            channel = self.default_blink_channel if toggle_on else self.default_brightness_level
-            self.send_midi_message("note_on", channel, note, velocity=color, device_id=device_id)
-
-    def update_all_blinking(self):
-        self.executor_states = set()
-        self.temporary_exec_states = set()
-        self.dot2_ws.poll_exec_state()
-
-    def dot2_logo(self):
-        self.set_all_pads(109, 6)
-        self.set_colors((8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 23, 28, 37, 38, 47, 51, 55, 60, 61, 62), 3, 1)
-        self.set_colors((8, 11, 13, 14, 15, 16, 19, 22, 24, 25, 26, 27, 30, 32, 35, 38, 40, 43, 45, 46, 47), 3, 2)
-
-    def control_change_handler(self, cc, value, device_id):
-        fader_index = self.get_fader_index_from_cc(cc, device_id)
-        self.set_gui_fader_value(fader_id=cc, device_id=device_id, value=value)
-        value = round(value/127, 2) # Dot2 takes a 0-1 float, not a 0-127 int like the gui and midi
-        last_value_dict = self.fader_last_value_dictionary_device1 if device_id == 1 else self.fader_last_value_dictionary_device2
-        last_fader_value = last_value_dict[str(cc)]
-
-        if last_fader_value != value:
-            self.dot2_ws.send_playback_fader(fader_index=fader_index, fader_value=value)
-            last_value_dict[str(cc)] = value
-
-# =================================================================
-#                          Playbacks
-# =================================================================
-
-    @staticmethod
-    def get_executor_state(data):
-        """
-        Takes the top-level data structure and returns a set of executor ids
-        (from the 'iExec' field) that are currently ON (isRun == 1), along with
-        the data type: 0 if B-Wing, 1 if F-Wing.
-
-        Each entry in data['itemGroups'] is a row containing one or more
-        executor dicts. We iterate through all of them and check 'isRun'.
-        """
-        running_ids = set()
-        data_type = 0  # 0 If B-Wing, 1 if F-Wing
-        if data.get("responseSubType", None) == 2:
-            data_type = 1
-
-        items_group = data.get("itemGroups", [])
-        if len(items_group) == 0:
-            return
-
-        for row in items_group:
-            for exec_item in row.get("items", []):
-                exec_id = exec_item[0].get('iExec', None)
-                if exec_item[0].get('isRun') == 1 and exec_id is not None:
-                    running_ids.add(exec_id)
-        return running_ids, data_type
-
-    def handle_playbacks(self, data):
-        """
-        Serves as a hub for playback management, including feedback to the controller.
-
-        Because of how the websocket is made it is IMPOSSIBLE to get every executor
-        in a single request. Therefore, handle_playbacks is called twice for every
-        playback poll (there are 2 requests made by dot2_ws.poll_exec_state()).
-        This means that the data received is INCOMPLETE and must not be treated
-        as absolute until both calls have come in.
-        """
-        current_running_execs, exec_data_type = self.get_executor_state(data)
-        # F-Wing is always the second set of data to come in, therefore we know
-        # we treat the data if exec_data_type is equal to 1
-        if exec_data_type == 0:
-            self.temporary_exec_states = current_running_execs
-            return
-
-        old_exec_states = self.executor_states
-        current_running_execs = current_running_execs | self.temporary_exec_states
-
-        if old_exec_states == current_running_execs:
-            return  # No need to continue if they're the same
-
-        # Symmetric difference: only keep the executors whose state changed
-        old_current_symmetry = old_exec_states ^ current_running_execs
-
-        for executor in old_current_symmetry:
-            turned_on = executor in current_running_execs
-            for note, device_id in self.executor_note_dictionary[executor]:
-                self.toggle_blink_note(note, device_id, turned_on)
-
-        self.executor_states = current_running_execs
-        self.temporary_exec_states = set()
-
-    def periodic_playback_poll(self):
-        while True:
-            time.sleep(self.PERIODIC_PLAYBACK_INTERVAL)
-            self.dot2_ws.poll_exec_state()
-
-    def imitate_midi_message(self, device_id, type, channel, note=None, velocity=None, cc=None, value=None):
-        if type == "control_change":
-            midi_message = mido.Message(type=type, channel=int(channel), control=int(cc), value=int(value))
-        elif type == "note_on" or type == "note_off":
-            midi_message = mido.Message(type=type, channel=int(channel), note=int(note), velocity=int(velocity))
-        else:
-            return
-        self.note_loop(midi_message, device_id)
-
-    def note_loop(self, message, device_id):
+        self.set_all_pads();
+        for note,entry in self.note_executor_dictionary.items():
+            color=entry.get("color",-1)
+            if color >= 0: self.send_midi_message('note_on',self.default_brightness_level,int(note),color); self.set_gui_button_color(note,color)
+    def note_loop(self,message,config_mode=False):
         if message.type == "control_change":
-            if self.config_mode:
-                self.link_cc_note(message.control, device_id)
-                return
-
-            cc_note_dict = (
-                self.cc_fader_index_dictionary_device1 if device_id == 1
-                else self.cc_fader_index_dictionary_device2
-            )
-
-            if str(message.control) in cc_note_dict:
-                self.control_change_handler(cc=message.control, value=message.value, device_id=device_id)
-
-        elif message.type == "note_on" or message.type == "note_off":
-            note = message.note
-            if message.type == 'note_on' and self.config_mode:
-                self.link_executor_note(note, device_id)
-                return
-
-            note_executor_dict = (
-                self.note_executor_dictionary_device1 if device_id == 1
-                else self.note_executor_dictionary_device2
-            )
-
-            if str(note) in note_executor_dict:
-                executor_index = note_executor_dict[str(note)]["executor_index"]
-                self.dot2_ws.send_playback_click(executor_index, pressed=message.velocity == 127)
-                self.dot2_ws.poll_exec_state()
-    # TODO gui button state
-
-# =================================================================
-#                      Setup / Run / Lifecycle
-# =================================================================
-
-    def setup(self):
-        """Loads config, opens MIDI ports, connects to the dot2 console, and
-        registers hotkeys. Must be called before run()."""
-        self.run_dot2()
-        self.load_json()
-        self.initiate_executor_note_dictionary()
-        self.initiate_last_value_dictionary()
-        self.select_midi_ports()
-        self.dot2_logo()
-        threading.Timer(2, self.update_colors).start()
-        self.load_labels()
-        #TODO create load gui button color and load them before labels
-
-        self.dot2_ws = Dot2WebSocketHandler(
-            host=self.host,
-            username=self.USERNAME,
-            password=self.plaintext_password,
-            heartbeat_step=self.HEARTBEAT_STEP,
-
-            bwing_start_index=self.BWING_START_INDEX,
-            bwing_items_count=self.BWING_ITEMS_COUNT,
-            bwing_items_type=self.BWING_ITEMS_TYPE,
-            bwing_view=self.BWING_VIEW,
-            bwing_exec_view_mode=self.BWING_EXEC_VIEW_MODE,
-
-            fwing_start_index=self.FWING_START_INDEX,
-            fwing_items_count=self.FWING_ITEMS_COUNT,
-            fwing_items_type=self.FWING_ITEMS_TYPE,
-            fwing_view=self.FWING_VIEW,
-            fwing_exec_view_mode=self.FWING_EXEC_VIEW_MODE,
-
-            debug=True,
-        )
-        self.dot2_ws.connect()
-
-        while not self.dot2_ws.logged_in:
-            time.sleep(0.1)
-
-        self._register_hotkeys()
-        self.dot2_ws.on("playbacks", self.handle_playbacks)
-
-        self._playback_poll_thread = threading.Thread(
-            target=self.periodic_playback_poll, daemon=True
-        )
-        self._playback_poll_thread.start()
-
-    def _register_hotkeys(self):
-        keyboard.add_hotkey("F1", self.invert_devices)
-        keyboard.add_hotkey("F2", self.toggle_config_mode)
-        keyboard.add_hotkey("F11", self.restore_last_backup)
-        keyboard.add_hotkey("F12", self.remove_color_from_data)
-
-    def poll(self):
-        """Polls for messages and handles them"""
-        for msg in self.midi_inport_device1.iter_pending():
-            self.note_loop(msg, device_id=1)
-        for msg in self.midi_inport_device2.iter_pending():
-            self.note_loop(msg, device_id=2)
+            if config_mode: self.link_cc_note(message.control); return
+            if str(message.control) in self.cc_fader_index_dictionary: self.control_change_handler(message.control,message.value)
+        elif message.type in ("note_on","note_off"):
+            if message.type=='note_on' and config_mode: self.link_executor_note(message.note); return
+            entry=self.note_executor_dictionary.get(str(message.note))
+            if entry: self.websocket_callback("click",entry["executor_index"],pressed=message.velocity==127)
+    def imitate_midi_message(self,type,channel,note=None,velocity=None,cc=None,value=None,config_mode=False):
+        if type=="control_change": self.note_loop(mido.Message(type=type,channel=int(channel),control=int(cc),value=int(value)),config_mode)
+        elif type in ("note_on","note_off"): self.note_loop(mido.Message(type=type,channel=int(channel),note=int(note),velocity=int(velocity)),config_mode)
+    def poll(self,config_mode=False):
+        for msg in self.midi_inport.iter_pending(): self.note_loop(msg,config_mode)
