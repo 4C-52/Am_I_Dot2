@@ -5,21 +5,22 @@ over websocket, and persists button-to-executor mappings to a JSON file.
 """
 
 from packages.web_socket_handler import Dot2WebSocketHandler
-from tkinter import simpledialog
+from packages.dialogs.midi_port_dialog import MidiPortDialog
+from packages.dialogs import input_prompts
+from packages.gui_thread import GuiThreadDispatcher
+from packages.app_info import BUNDLED_PROFILE_PATH
+from packages import profile_manager
 from datetime import datetime
+from PySide6.QtCore import QTimer
 
-import tkinter as tk
 import mido
-import psutil
 import os
 import glob
 import json
 import time
 import shutil
-import pygetwindow
 import keyboard
 import threading
-import subprocess
 
 class MidiController:
 
@@ -36,22 +37,10 @@ class MidiController:
 
     HEARTBEAT_STEP = 10
     PERIODIC_PLAYBACK_INTERVAL = 3  # in seconds
+    LOGO_DURATION_MS = 2000  # How long the dot2 logo stays on the pads at startup
 
-    BWING_START_INDEX = [300, 400, 500, 600, 700, 800]
-    BWING_ITEMS_COUNT = [16, 16, 16, 16, 16, 16]
-    BWING_ITEMS_TYPE = [3, 3, 3, 3, 3, 3]
-    BWING_VIEW = 3
-    BWING_EXEC_VIEW_MODE = 2
-
-    FWING_START_INDEX = [0, 100, 200]
-    FWING_ITEMS_COUNT = [22, 22, 22]
-    FWING_ITEMS_TYPE = [2, 3, 3]
-    FWING_VIEW = 2
-    FWING_EXEC_VIEW_MODE = 1
-
-    USERNAME = "remote"
-
-    DATA_FILEPATH = "data/data.json"
+    DEVICE_IDS = (1, 2)
+    DATA_FILEPATH = str(BUNDLED_PROFILE_PATH)  # Replaced by the profile given to setup() / load_profile()
 
     def __init__(self, data_filepath=None):
         self.DATA_FILEPATH = data_filepath or self.DATA_FILEPATH
@@ -84,28 +73,24 @@ class MidiController:
         self.config_mode = 0
 
         # Dot2 connection info (populated by load_json)
-        self.host = "192.168.0.6"
+        self.host = "10.0.0.50"
         self.plaintext_password = "1"
 
         self.dot2_ws = None
         self._playback_poll_thread = None
 
+        # Config mode: True while the executor/label prompts are open, so pad presses are ignored meanwhile
+        self._link_in_progress = False
+        # Config mode: the link waiting for the user to press a color on the palette (dict) or None
+        self._pending_color_link = None
+
         # GUI
         self.gui_instance = None
+        self._hotkey_dispatcher = None
 
 # =================================================================
 #                         Tools / Utils
 # =================================================================
-
-    @staticmethod
-    def ask_input(prompt=""):
-        """Opens a small Tkinter dialog to ask the user for text input."""
-        root = tk.Tk()
-        root.withdraw()
-        result = simpledialog.askstring("Input", prompt)
-        print(result)
-        root.destroy()
-        return result
 
     def invert_devices(self):
         (self.midi_inport_device1, self.midi_inport_device2) = \
@@ -131,11 +116,11 @@ class MidiController:
         last_backup = self.get_last_backup(backup_directory_path)
 
         if not last_backup:
-            print("No backup found to restore.")
+            input_prompts.show_info("No backup found to restore.", parent=self.gui_instance)
             return
 
         if not self._confirm_destructive_action(
-            "Are you sure you want to load the last backup?(Y/N) \n"
+            "Are you sure you want to load the last backup?\n"
             "YOUR CURRENT COLORS WILL BE OVERWRITTEN."
         ):
             return
@@ -146,16 +131,8 @@ class MidiController:
         self.update_colors()
 
     def _confirm_destructive_action(self, warning_prompt):
-        """
-        Shared confirmation flow used by destructive actions:
-        first a Y/N prompt, then a typed "CONFIRM" prompt.
-        Returns True only if both steps pass.
-        """
-        if self.ask_input(warning_prompt).lower() == "y":
-            if self.ask_input('Type "CONFIRM" to proceed. Your current file will be LOST.') != "CONFIRM":
-                return False
-            return True
-        return False
+        """Yes/No question then a typed "CONFIRM". Returns True only if both steps pass."""
+        return input_prompts.confirm_destructive_action(warning_prompt, parent=self.gui_instance)
 
     def initiate_executor_note_dictionary(self):
         """
@@ -174,35 +151,12 @@ class MidiController:
             self.executor_note_dictionary.setdefault(executor, []).append([note, 2])
 
     def initiate_last_value_dictionary(self):
-        for cc in self.cc_fader_index_dictionary_device1.keys():
-            self.fader_last_value_dictionary_device1[cc]=0.0
-        for cc in self.cc_fader_index_dictionary_device2.keys():
-            self.fader_last_value_dictionary_device2[cc] = 0.0
+        self.fader_last_value_dictionary_device1 = {cc: 0.0 for cc in self.cc_fader_index_dictionary_device1}
+        self.fader_last_value_dictionary_device2 = {cc: 0.0 for cc in self.cc_fader_index_dictionary_device2}
 
-    def is_process_running(self, process_name):
-        for proc in psutil.process_iter(['name']):
-            try:
-                if process_name.lower() in proc.info['name'].lower():
-                    matching_windows = []
-                    while not matching_windows:
-                        matching_windows = [
-                            window for window in pygetwindow.getAllWindows()
-                            if process_name.lower() in window.title.lower()
-                        ]
-                        if matching_windows:
-                            return True
-                        time.sleep(0.1)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-        return False
-
-    def is_dot2_running(self):
-        return self.is_process_running("dot2")
-
-    def run_dot2(self):
-        while not self.is_dot2_running():
-            print("Not running dot2")
-            subprocess.Popen([r"C:\Program Files (x86)\MA Lighting Technologies\dot2\dot2onpc_1.9.0\bin\dot2_onpc.exe"])
+    def _note_dictionaries_by_device(self):
+        """{device_id: note -> executor dictionary} for both controllers."""
+        return {1: self.note_executor_dictionary_device1, 2: self.note_executor_dictionary_device2}
 
 # =================================================================
 #                            GUI Actions
@@ -212,19 +166,25 @@ class MidiController:
         self.gui_instance = gui_instance
 
     def ask_labels(self):
-        short_label = self.ask_input("Please Input the \"Short\" Label")
-        long_label = self.ask_input("Please Input the \"Long\" Label")
-        if long_label is None:
+        """Asks the short then the long label. Returns (None, None) if the short label prompt is cancelled."""
+        short_label = input_prompts.ask_text('Please input the "Short" label', parent=self.gui_instance)
+        if short_label is None:
+            return None, None
+        long_label = input_prompts.ask_text('Please input the "Long" label', parent=self.gui_instance)
+        if not long_label:
             long_label = short_label
         return short_label, long_label
 
     def load_labels(self):
-        for button_id, data in self.note_executor_dictionary_device1.items():
-            if data.get("short_label", None) is not None:
-                self.set_button_label(button_id=button_id,
-                                      device_id=1,
-                                      short_label=data["short_label"],
-                                      long_label=data["long_label"] if data.get("long_label", None) is not None or data.get("Long_label", None) != "" else data["short_label"])
+        """Shows the labels of the current profile on the GUI pads of both wings."""
+        for device_id, note_dictionary in self._note_dictionaries_by_device().items():
+            for button_id, entry in note_dictionary.items():
+                short_label = entry.get("short_label")
+                if short_label is None:
+                    continue
+                long_label = entry.get("long_label") or short_label
+                self.set_button_label(button_id=button_id, device_id=device_id,
+                                      short_label=short_label, long_label=long_label)
 
     def set_button_label(self, button_id, device_id, short_label, long_label):
         self.gui_instance.set_button_label(button_id=int(button_id),
@@ -243,14 +203,129 @@ class MidiController:
                                           device_id=device_id,
                                           value=value)
 
+    def update_gui_button_colors(self):
+        """Updates all colors of the pad including special buttons."""
+        note_executor_dictionaries = [
+            self.note_executor_dictionary_device1,
+            self.note_executor_dictionary_device2,
+        ]
+
+        for device in range(2):
+            for button_note, entry in note_executor_dictionaries[device].items():
+                color = entry["color"]
+                if color < 0 or int(button_note) == self.SHIFT_KEY:
+                    self.set_gui_button_color(button_id=button_note,
+                                              device_id=device + 1,
+                                              color_note=3)
+
+                if int(button_note) in self.NORMAL_BUTTON_NOTES:
+                    self.set_gui_button_color(button_id=button_note,
+                                               device_id=device + 1,
+                                               color_note=color)
+
+                elif int(button_note) in self.SPECIAL_BUTTON_NOTES:
+                    # Channel 0 is the only channel that should be used with special buttons
+                    self.set_gui_button_color(button_id=button_note,
+                                               device_id=device + 1,
+                                               color_note=21 if int(button_note) > 111 else 5)
+        self.gui_instance.refresh_gui()
+
+    def set_temp_gui_button_color(self, button_id, device_id, hex_color):
+        self.gui_instance.set_temp_button_color(button_id=button_id, device_id=device_id, hex_color=hex_color)
+
+    def restore_permanent_gui_button_color(self, button_id, device_id):
+        self.gui_instance.restore_permanent_button_color(button_id=int(button_id), device_id=int(device_id))
+
+    def show_color_gui_palette(self):
+        self.gui_instance.set_blank_gui()
+        for pad in range(len(self.BUTTON_COLORS_DEVICE1)):
+            color = self.get_hex_color_from_note(self.BUTTON_COLORS_DEVICE1[pad])
+            self.set_temp_gui_button_color(
+                button_id=pad,
+                device_id=1,
+                hex_color=color
+            )
+
+        for pad in range(len(self.BUTTON_COLORS_DEVICE2)):
+            color = self.get_hex_color_from_note(self.BUTTON_COLORS_DEVICE2[pad])
+            self.set_temp_gui_button_color(
+                button_id=pad,
+                device_id=2,
+                hex_color=color
+            )
+
+        for pad in self.SPECIAL_BUTTON_NOTES:
+            self.set_temp_gui_button_color(
+                button_id=pad,
+                device_id=1,
+                hex_color='#FFFFFF'
+            )
+            self.set_temp_gui_button_color(
+                button_id=pad,
+                device_id=2,
+                hex_color='#FFFFFF'
+            )
+
+        #shift key
+        self.set_temp_gui_button_color(
+            button_id=self.SHIFT_KEY,
+            device_id=1,
+            hex_color='#FFFFFF'
+        )
+        self.set_temp_gui_button_color(
+            button_id=self.SHIFT_KEY,
+            device_id=2,
+            hex_color='#FFFFFF'
+        )
+        self.gui_instance.refresh_gui()
+
+    def restore_all_permanent_gui_button_colors(self):
+        self.gui_instance.restore_all_permanent_gui_button_colors()
+
+    def toggle_check_menu_button(self):
+        self.gui_instance.toggle_check_menu_button(menu_id="tools", button_id="config_mode")
+
+    def clear_all_colors(self):
+        """Turns off every pad of both controllers and removes the colors and labels of the GUI."""
+        self.turn_off_pad()
+        self.gui_instance.clear_all_buttons()
+
 # =================================================================
 #                            JSON
 # =================================================================
 
-    def load_json(self):
-        with open(self.DATA_FILEPATH, "r") as f:
-            data = json.load(f)
+    def load_profile(self, profile_path):
+        """
+        Replaces the current profile by the given file.
 
+        The file is validated first, so a bad file leaves everything untouched
+        (profile_manager.ProfileError is raised). Then the pads and the GUI are
+        cleared, the new data is applied and its colors and labels are shown.
+        """
+        data = profile_manager.read_profile(profile_path)
+
+        self._pending_color_link = None  # A half-done config mode link belongs to the old profile
+        self.clear_all_colors()
+        self.DATA_FILEPATH = profile_path
+        self._apply_profile_data(data)
+        self._sync_defaults_with_open_ports()
+        self.initiate_executor_note_dictionary()
+        self.initiate_last_value_dictionary()
+        self.update_colors()
+        self.load_labels()
+
+    def load_json(self):
+        """Re-reads the current profile file (used after it was modified on disk)."""
+        config_mode = self.config_mode  # Runtime state: re-reading must not switch config mode off mid-session
+        self._apply_profile_data(self._read_data_file())
+        self.config_mode = config_mode
+
+    def read_current_profile(self):
+        """Content of the current profile file as a dictionary."""
+        return self._read_data_file()
+
+    def _apply_profile_data(self, data):
+        """Copies the content of a profile dictionary into the controller attributes."""
         self.note_executor_dictionary_device1 = data["note_executor_dictionary_device1"]
         self.note_executor_dictionary_device2 = data["note_executor_dictionary_device2"]
         self.cc_fader_index_dictionary_device1 = data["cc_fader_index_dictionary_device1"]
@@ -340,19 +415,24 @@ class MidiController:
 
         self._write_data_file(data)
 
+    def set_dot2_settings(self, host, password):
+        """Changes the console address and password, and saves them in the current profile."""
+        self.host = host
+        self.plaintext_password = password
+
+        data = self._read_data_file()
+        data["default_ip_address"] = host
+        data["dot2_password"] = password
+        self._write_data_file(data)
+
     def toggle_config_mode(self):
         self.config_mode = not self.config_mode
 
-        data = self._read_data_file()
-
         if self.config_mode:
             self.flash_color(2, 5)
-            data["config_mode"] = 1
         else:
+            self._pending_color_link = None  # Leaving config mode abandons a link waiting for its color
             self.flash_color(2, 21)
-            data["config_mode"] = 0
-
-        self._write_data_file(data)
 
     def remove_color_from_data(self):
         self.flash_color(2, 120)
@@ -388,31 +468,65 @@ class MidiController:
 
     def link_executor_note(self, note, device_id):
         """
-        Updates the data.json file
-        :param note: the MIDI note number to link
-        :param device_id: the device ID to link the executor to
+        Config mode, step 1: asks the executor (for unmapped pads) and the labels.
+        Normal pads then wait for a color to be pressed on the palette (step 2,
+        see _finish_color_pick) without blocking the window. Special buttons are
+        saved right away.
         """
-        if device_id == 1 and str(note) in self.note_executor_dictionary_device1:
-            executor_index = self.note_executor_dictionary_device1[str(note)]["executor_index"]
-        elif device_id == 2 and str(note) in self.note_executor_dictionary_device2:
-            executor_index = self.note_executor_dictionary_device2[str(note)]["executor_index"]
-        else:
-            temp = self.ask_input("Please input the id of the executor")
-            if temp is None:
+        self._link_in_progress = True
+        try:
+            executor_index = self._ask_executor_index(note, device_id)
+            if executor_index is None:
                 return
-            executor_index = int(temp) - 1
+            short_label, long_label = self.ask_labels()
+        finally:
+            self._link_in_progress = False
 
-        short_label, long_label = self.ask_labels()
+        link = {"note": note, "device_id": device_id, "executor_index": executor_index,
+                "short_label": short_label, "long_label": long_label}
 
         if note in self.NORMAL_BUTTON_NOTES:
-            color = self.choose_color()
-            self.append_note_to_json(note, executor_index, device_id=device_id, color=color, short_label=short_label, long_label=long_label)
-
+            self._start_color_pick(link)
         elif note in self.SPECIAL_BUTTON_NOTES or note == self.SHIFT_KEY:
-            self.append_note_to_json(note, executor_index, device_id=device_id, color=1, short_label=short_label, long_label=long_label)
+            self._save_link(link, color=1)
 
-        self.set_button_label(button_id=note, device_id=device_id, short_label=short_label, long_label=long_label)
+    def _ask_executor_index(self, note, device_id):
+        """Executor already mapped to the pad, otherwise asks the user. None when cancelled."""
+        note_dictionary = self._note_dictionaries_by_device()[device_id]
+        if str(note) in note_dictionary:
+            return note_dictionary[str(note)]["executor_index"]
+
+        executor_id = input_prompts.ask_number("Please input the id of the executor",
+                                               minimum=1, parent=self.gui_instance)
+        return None if executor_id is None else executor_id - 1  # The dot2 counts executors from 0
+
+    def _start_color_pick(self, link):
+        """Shows the color palette on the pads and the GUI; the next pad pressed picks the color."""
+        self._pending_color_link = link
+        self.show_controller_color_palette()
+        self.show_color_gui_palette()
+
+    def _finish_color_pick(self, pressed_note, pressed_device_id):
+        """Pressing a palette pad picks its color, any other button means "no color"."""
+        link = self._pending_color_link
+        self._pending_color_link = None
+
+        if pressed_note in self.NORMAL_BUTTON_NOTES and pressed_note < len(self.BUTTON_COLORS_DEVICE1):
+            palette = self.BUTTON_COLORS_DEVICE1 if pressed_device_id == 1 else self.BUTTON_COLORS_DEVICE2
+            color = palette[pressed_note]
+        else:
+            color = -1
+        self._save_link(link, color=color)
+
+    def _save_link(self, link, color):
+        """Writes the link to the profile and refreshes the pads, labels and blinking."""
+        self.append_note_to_json(link["note"], link["executor_index"], device_id=link["device_id"], color=color,
+                                 short_label=link["short_label"], long_label=link["long_label"])
+        if link["short_label"] is not None:
+            self.set_button_label(button_id=link["note"], device_id=link["device_id"],
+                                  short_label=link["short_label"], long_label=link["long_label"])
         self.load_json()
+        self.initiate_executor_note_dictionary()
         self.update_colors()
 
     def get_fader_index_from_cc(self, cc, device_id):
@@ -428,9 +542,12 @@ class MidiController:
         :param device_id:
         :return:
         """
-        note = int(self.ask_input("Please input the id of the note"))
+        note = input_prompts.ask_number("Please input the id of the note", parent=self.gui_instance)
+        if note is None:
+            return
         self.append_cc_to_json(cc=cc, note=note, device_id=device_id)
         self.load_json()
+        self.initiate_last_value_dictionary()
 
     def get_hex_color_from_note(self, note):
         return self.NOTE_COLOR_MAP.get(int(note), None)
@@ -439,56 +556,98 @@ class MidiController:
 #                            MIDI
 # =================================================================
 
-    def _prompt_for_port(self, port_names, label):
-        print(f"Please select the {label}\n",
-              '\n '.join(f"{i + 1}- {item}" for i, item in enumerate(port_names)))
-        choice = port_names[int(self.ask_input("Please select an available port")) - 1]
-        return choice
+    # ---- Port bookkeeping (device 1 and 2 have separate attributes) ----
 
-    def select_midi_ports(self):
-        available_inputs = mido.get_input_names()
-        available_outputs = mido.get_output_names()
+    def _get_device_ports(self, device_id):
+        if device_id == 1:
+            return self.midi_inport_device1, self.midi_outport_device1
+        return self.midi_inport_device2, self.midi_outport_device2
 
-        # --- Input Device 1 ---
-        if self.default_midi_inport_device1 not in available_inputs:
-            temp = self._prompt_for_port(available_inputs, "first device Input(Wing-1)")
-            self.midi_inport_device1 = mido.open_input(temp)
-            available_inputs.remove(temp)
-            self.default_midi_inport_device1 = temp
+    def _set_device_ports(self, device_id, inport, outport):
+        if device_id == 1:
+            self.midi_inport_device1, self.midi_outport_device1 = inport, outport
         else:
-            self.midi_inport_device1 = mido.open_input(self.default_midi_inport_device1)
+            self.midi_inport_device2, self.midi_outport_device2 = inport, outport
 
-        # --- Input Device 2 ---
-        if self.default_midi_inport_device2 not in available_inputs:
-            temp = self._prompt_for_port(available_inputs, "second device Input(Wing-2)")
-            self.midi_inport_device2 = mido.open_input(temp)
-            self.default_midi_inport_device2 = temp
+    def _get_default_port_names(self, device_id):
+        if device_id == 1:
+            return self.default_midi_inport_device1, self.default_midi_outport_device1
+        return self.default_midi_inport_device2, self.default_midi_outport_device2
+
+    def _set_default_port_names(self, device_id, input_name, output_name):
+        if device_id == 1:
+            self.default_midi_inport_device1, self.default_midi_outport_device1 = input_name, output_name
         else:
-            self.midi_inport_device2 = mido.open_input(self.default_midi_inport_device2)
+            self.default_midi_inport_device2, self.default_midi_outport_device2 = input_name, output_name
 
-        # --- Output Device 1 ---
-        if self.default_midi_outport_device1 not in available_outputs:
-            temp = self._prompt_for_port(available_outputs, "first device Output(Wing-1)")
-            self.midi_outport_device1 = mido.open_output(temp)
-            available_outputs.remove(temp)
-            self.default_midi_outport_device1 = temp
-        else:
-            self.midi_outport_device1 = mido.open_output(self.default_midi_outport_device1)
+    def get_open_port_names(self, device_id):
+        """Names of the MIDI ports currently open for a controller ("" when not open)."""
+        inport, outport = self._get_device_ports(device_id)
+        return (inport.name if inport is not None else "",
+                outport.name if outport is not None else "")
 
-        # --- Output Device 2 ---
-        if self.default_midi_outport_device2 not in available_outputs:
-            temp = self._prompt_for_port(available_outputs, "second device Output(Wing-2)")
-            self.midi_outport_device2 = mido.open_output(temp)
-            self.default_midi_outport_device2 = temp
-        else:
-            self.midi_outport_device2 = mido.open_output(self.default_midi_outport_device2)
-
+    def _persist_default_ports(self):
+        """Saves the current default port names in the profile."""
         self.set_default_devices(
             device1_input=self.default_midi_inport_device1,
             device2_input=self.default_midi_inport_device2,
             device1_output=self.default_midi_outport_device1,
             device2_output=self.default_midi_outport_device2,
         )
+
+    def _sync_defaults_with_open_ports(self):
+        """
+        After switching profile, the ports already open stay in use and become
+        the defaults of the new profile, so the next startup reuses them.
+        """
+        any_port_open = False
+        for device_id in self.DEVICE_IDS:
+            input_name, output_name = self.get_open_port_names(device_id)
+            if input_name and output_name:
+                self._set_default_port_names(device_id, input_name, output_name)
+                any_port_open = True
+        if any_port_open:
+            self._persist_default_ports()
+
+    # ---- Opening ports ----
+
+    def _open_device_ports(self, device_id, input_name, output_name):
+        """Closes the ports open for the controller, opens the given ones and makes them the defaults."""
+        for port in self._get_device_ports(device_id):
+            if port is not None:
+                port.close()
+        self._set_device_ports(device_id, None, None)
+
+        inport = mido.open_input(input_name)
+        outport = mido.open_output(output_name)
+        self._set_device_ports(device_id, inport, outport)
+        self._set_default_port_names(device_id, input_name, output_name)
+
+    def select_midi_ports(self, parent=None):
+        """
+        Opens the saved ports of both controllers. When a saved port is not
+        available (first run, controller unplugged...) the user picks one in a
+        dialog, which can be cancelled to run without that controller.
+        """
+        available_inputs = mido.get_input_names()
+        available_outputs = mido.get_output_names()
+
+        for device_id in self.DEVICE_IDS:
+            input_name, output_name = self._get_default_port_names(device_id)
+            if input_name in available_inputs and output_name in available_outputs:
+                self._open_device_ports(device_id, input_name, output_name)
+            else:
+                self.choose_ports_for_device(device_id, parent=parent, available_inputs=available_inputs,
+                                             available_outputs=available_outputs, persist=False)
+
+            # A port taken by the first controller is not offered to the second one
+            opened_input, opened_output = self.get_open_port_names(device_id)
+            if opened_input in available_inputs:
+                available_inputs.remove(opened_input)
+            if opened_output in available_outputs:
+                available_outputs.remove(opened_output)
+
+        self._persist_default_ports()
         print(
             f"Midi Device IN 1: {self.midi_inport_device1}\n"
             f"Midi Device IN 2: {self.midi_inport_device2}\n"
@@ -496,10 +655,36 @@ class MidiController:
             f"MIDI Device OUT 2: {self.midi_outport_device2}\n"
         )
 
+    def choose_ports_for_device(self, device_id, parent=None, available_inputs=None,
+                                available_outputs=None, persist=True):
+        """
+        Shows the port selection dialog for one controller, then opens the
+        chosen ports and saves them as defaults. Returns False when cancelled.
+        """
+        if available_inputs is None:
+            available_inputs = mido.get_input_names()
+        if available_outputs is None:
+            available_outputs = mido.get_output_names()
+
+        current_input, current_output = self.get_open_port_names(device_id)
+        if not current_input:
+            current_input, current_output = self._get_default_port_names(device_id)
+
+        choice = MidiPortDialog.ask_ports(device_id, available_inputs, available_outputs,
+                                          current_input, current_output, parent=parent)
+        if choice is None:
+            return False
+
+        input_name, output_name = choice
+        self._open_device_ports(device_id, input_name, output_name)
+        if persist:
+            self._persist_default_ports()
+        return True
+
     def flash_color(self, duration, color):
+        """Lights every pad with color for duration seconds, then restores the colors. Does not block the GUI."""
         self.set_all_pads(velocity=color, channel=11)
-        time.sleep(duration)
-        self.update_colors()
+        QTimer.singleShot(int(duration * 1000), self.update_colors)
 
     def set_all_pads(self, velocity=0, channel=None):
         channel = self.default_brightness_level if channel is None else channel
@@ -507,26 +692,23 @@ class MidiController:
             self.send_midi_message(midi_message_type="note_on", channel=channel, note=pad, velocity=velocity)
 
     def send_midi_message(self, midi_message_type, channel, note, velocity, device_id=3):
+        """Sends a note message to device 1, 2 or both (device_id=3). Controllers that are not open are skipped."""
         midi_message = mido.Message(
             type=str(midi_message_type), channel=int(channel), note=int(note), velocity=int(velocity)
         )
+        for outport in self._outports_for(device_id):
+            if outport is not None:
+                outport.send(midi_message)
+
+    def _outports_for(self, device_id):
         if device_id == 1:
-            self.midi_outport_device1.send(midi_message)
-        elif device_id == 2:
-            self.midi_outport_device2.send(midi_message)
-        elif device_id == 3:
-            self.midi_outport_device1.send(midi_message)
-            self.midi_outport_device2.send(midi_message)
+            return (self.midi_outport_device1,)
+        if device_id == 2:
+            return (self.midi_outport_device2,)
+        return (self.midi_outport_device1, self.midi_outport_device2)
 
-    def listen_to_note(self):
-        while True:
-            for incoming_message in self.midi_inport_device1.iter_pending():
-                return incoming_message, 1
-
-            for incoming_message in self.midi_inport_device2.iter_pending():
-                return incoming_message, 2
-
-    def choose_color(self):
+    def show_controller_color_palette(self):
+        self.turn_off_pad()
         for pad in range(len(self.BUTTON_COLORS_DEVICE1)):
             color = self.BUTTON_COLORS_DEVICE1[pad]
             self.send_midi_message(
@@ -536,25 +718,15 @@ class MidiController:
                 velocity=color,
                 device_id=1
             )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=1,
-                color_note=color
-            )
 
         for pad in range(len(self.BUTTON_COLORS_DEVICE2)):
-            color = self.BUTTON_COLORS_DEVICE1[pad]
+            color = self.BUTTON_COLORS_DEVICE2[pad]
             self.send_midi_message(
                 midi_message_type='note_on',
                 channel=self.default_brightness_level,
                 note=pad,
                 velocity=color,
                 device_id=2
-            )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=2,
-                color_note=color
             )
 
         for pad in self.SPECIAL_BUTTON_NOTES:
@@ -565,23 +737,6 @@ class MidiController:
                 velocity=0,
                 device_id=3
             )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=1,
-                color_note=0
-            )
-            self.set_gui_button_color(
-                button_id=pad,
-                device_id=2,
-                color_note=0
-            )
-
-        message, device_id = self.listen_to_note()
-        while message.type != 'note_on':
-            message, device_id = self.listen_to_note()
-            if message.note not in self.NORMAL_BUTTON_NOTES:
-                return -1
-        return self.BUTTON_COLORS_DEVICE1[message.note] if device_id == 1 else self.BUTTON_COLORS_DEVICE2[message.note]
 
     def turn_off_pad(self):
         self.set_all_pads(0, 6)
@@ -590,6 +745,10 @@ class MidiController:
             self.send_midi_message(midi_message_type='note_on', channel=0, note=pad, velocity=0)
 
     def update_colors(self):
+        self.update_controller_colors()
+        self.update_gui_button_colors()
+
+    def update_controller_colors(self):
         """Updates all colors of the pad including special buttons."""
         self.turn_off_pad()
         note_executor_dictionaries = [
@@ -609,9 +768,6 @@ class MidiController:
                         channel=self.default_brightness_level,
                         note=button_note, velocity=color, device_id=device + 1
                     )
-                    self.set_gui_button_color(button_id=button_note,
-                                               device_id=device + 1,
-                                               color_note=color)
 
                 elif int(button_note) in self.SPECIAL_BUTTON_NOTES:
                     # Channel 0 is the only channel that should be used with special buttons
@@ -619,10 +775,6 @@ class MidiController:
                         midi_message_type='note_on', channel=0,
                         note=button_note, velocity=1, device_id=device + 1
                     )
-                    self.set_gui_button_color(button_id=button_note,
-                                               device_id=device + 1,
-                                               color_note=21 if int(button_note) > 111 else 5)
-
         self.update_all_blinking()
 
     def set_colors(self, note_list, color, device_id):
@@ -653,12 +805,14 @@ class MidiController:
     def update_all_blinking(self):
         self.executor_states = set()
         self.temporary_exec_states = set()
-        self.dot2_ws.poll_exec_state()
+        if self.dot2_ws is not None:
+            self.dot2_ws.poll_exec_state()
 
     def dot2_logo(self):
         self.set_all_pads(109, 6)
-        self.set_colors((8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 23, 28, 37, 38, 47, 51, 55, 60, 61, 62), 3, 1)
-        self.set_colors((8, 11, 13, 14, 15, 16, 19, 22, 24, 25, 26, 27, 30, 32, 35, 38, 40, 43, 45, 46, 47), 3, 2)
+        self.set_colors((8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 23, 28, 37, 38, 47, 51, 55, 60, 61, 62), 3, 2)
+        self.set_colors((8, 11, 13, 14, 15, 16, 19, 22, 24, 25, 26, 27, 30, 32, 35, 38, 40, 43, 45, 46, 47), 3, 1)
+
 
     def control_change_handler(self, cc, value, device_id):
         fader_index = self.get_fader_index_from_cc(cc, device_id)
@@ -729,7 +883,8 @@ class MidiController:
 
         for executor in old_current_symmetry:
             turned_on = executor in current_running_execs
-            for note, device_id in self.executor_note_dictionary[executor]:
+            # Executors running on the console but mapped to no pad are simply ignored
+            for note, device_id in self.executor_note_dictionary.get(executor, []):
                 self.toggle_blink_note(note, device_id, turned_on)
 
         self.executor_states = current_running_execs
@@ -749,11 +904,21 @@ class MidiController:
             return
         self.note_loop(midi_message, device_id)
 
+    def fader_button_handler(self, cc, device_id, pressed):
+        executor_index = self.get_fader_index_from_cc(cc, device_id)
+        self.dot2_ws.send_playback_click(executor_index=executor_index, button_id=1, pressed=pressed)
+
     def note_loop(self, message, device_id):
+        # Config mode: while the prompts are open every message is dropped (the prompts are modal,
+        # but MIDI keeps being polled), and while the palette is shown only the next press counts.
+        if self._link_in_progress:
+            return
+        if self._pending_color_link is not None:
+            if message.type == "note_on":
+                self._finish_color_pick(message.note, device_id)
+            return
+
         if message.type == "control_change":
-            if self.config_mode:
-                self.link_cc_note(message.control, device_id)
-                return
 
             cc_note_dict = (
                 self.cc_fader_index_dictionary_device1 if device_id == 1
@@ -781,64 +946,91 @@ class MidiController:
     # TODO gui button state
 
 # =================================================================
+#                         Dot2 connection
+# =================================================================
+
+    def setup_dot2_handler(self):
+        """Creates the websocket handler (without connecting) and registers the playback callback."""
+        self.dot2_ws = Dot2WebSocketHandler(
+            host=self.host,
+            password=self.plaintext_password,
+            heartbeat_step=self.HEARTBEAT_STEP,
+            debug=True,
+        )
+        self.dot2_ws.on("playbacks", self.handle_playbacks)
+
+    def start_dot2_connection(self):
+        """Starts connecting to the console in the background; follow it with dot2_connection_status()."""
+        self.dot2_ws.connect()
+
+    def restart_dot2_connection(self):
+        """Drops the current connection (if any) and connects again with the current host and password."""
+        self.dot2_ws.disconnect()
+        self.dot2_ws.update_credentials(host=self.host, password=self.plaintext_password)
+        self.dot2_ws.connect()
+
+    def dot2_connection_status(self):
+        """See Dot2WebSocketHandler.connection_status()."""
+        return self.dot2_ws.connection_status()
+
+    def dot2_settings_changed(self):
+        """True when the host or password in use differ from the websocket's (ex: another profile was loaded)."""
+        return (self.dot2_ws.HOST != self.host
+                or self.dot2_ws.PLAINTEXT_PASSWORD != self.plaintext_password)
+
+# =================================================================
 #                      Setup / Run / Lifecycle
 # =================================================================
 
-    def setup(self):
-        """Loads config, opens MIDI ports, connects to the dot2 console, and
-        registers hotkeys. Must be called before run()."""
-        self.run_dot2()
-        self.load_json()
-        self.initiate_executor_note_dictionary()
-        self.initiate_last_value_dictionary()
-        self.select_midi_ports()
+    def setup(self, profile_path, parent_widget=None):
+        """
+        Loads the profile, opens the MIDI ports (asking the user when a saved
+        port is missing), shows the logo on the pads and prepares the dot2
+        handler. The connection itself is started with start_dot2_connection().
+        """
+        self.load_profile(profile_path)
+        self.select_midi_ports(parent=parent_widget)
         self.dot2_logo()
-        threading.Timer(2, self.update_colors).start()
-        self.load_labels()
-        #TODO create load gui button color and load them before labels
+        QTimer.singleShot(self.LOGO_DURATION_MS, self.update_colors)
 
-        self.dot2_ws = Dot2WebSocketHandler(
-            host=self.host,
-            username=self.USERNAME,
-            password=self.plaintext_password,
-            heartbeat_step=self.HEARTBEAT_STEP,
-
-            bwing_start_index=self.BWING_START_INDEX,
-            bwing_items_count=self.BWING_ITEMS_COUNT,
-            bwing_items_type=self.BWING_ITEMS_TYPE,
-            bwing_view=self.BWING_VIEW,
-            bwing_exec_view_mode=self.BWING_EXEC_VIEW_MODE,
-
-            fwing_start_index=self.FWING_START_INDEX,
-            fwing_items_count=self.FWING_ITEMS_COUNT,
-            fwing_items_type=self.FWING_ITEMS_TYPE,
-            fwing_view=self.FWING_VIEW,
-            fwing_exec_view_mode=self.FWING_EXEC_VIEW_MODE,
-
-            debug=True,
-        )
-        self.dot2_ws.connect()
-
-        while not self.dot2_ws.logged_in:
-            time.sleep(0.1)
-
+        self.setup_dot2_handler()
         self._register_hotkeys()
-        self.dot2_ws.on("playbacks", self.handle_playbacks)
+        self._start_playback_poll_thread()
 
+    def _start_playback_poll_thread(self):
         self._playback_poll_thread = threading.Thread(
             target=self.periodic_playback_poll, daemon=True
         )
         self._playback_poll_thread.start()
 
     def _register_hotkeys(self):
-        keyboard.add_hotkey("F1", self.invert_devices)
-        keyboard.add_hotkey("F2", self.toggle_config_mode)
-        keyboard.add_hotkey("F11", self.restore_last_backup)
-        keyboard.add_hotkey("F12", self.remove_color_from_data)
+        """
+        Global hotkeys. The keyboard library calls them from its own thread, so
+        each one is forwarded to the GUI thread, where widgets and dialogs are safe to use.
+        """
+        self._hotkey_dispatcher = GuiThreadDispatcher()
+        on_gui_thread = self._hotkey_dispatcher.wrap
+        keyboard.add_hotkey("F1", on_gui_thread(self.invert_devices))
+        keyboard.add_hotkey("F2", on_gui_thread(self.toggle_config_mode))
+        keyboard.add_hotkey("F11", on_gui_thread(self.restore_last_backup))
+        keyboard.add_hotkey("F12", on_gui_thread(self.remove_color_from_data))
+
+    def shutdown(self):
+        """Closes the dot2 connection, turns the pads off and closes the MIDI ports. Called when the app quits."""
+        if self.dot2_ws is not None:
+            self.dot2_ws.disconnect()
+        self.turn_off_pad()
+        for device_id in self.DEVICE_IDS:
+            for port in self._get_device_ports(device_id):
+                if port is not None:
+                    port.close()
+            self._set_device_ports(device_id, None, None)
 
     def poll(self):
-        """Polls for messages and handles them"""
-        for msg in self.midi_inport_device1.iter_pending():
-            self.note_loop(msg, device_id=1)
-        for msg in self.midi_inport_device2.iter_pending():
-            self.note_loop(msg, device_id=2)
+        """Polls the open controllers for messages and handles them"""
+        for device_id in self.DEVICE_IDS:
+            inport, _ = self._get_device_ports(device_id)
+            if inport is None:
+                continue
+            for msg in inport.iter_pending():
+                self.note_loop(msg, device_id=device_id)

@@ -1,0 +1,4 @@
+# Everything needed to build the executable. Install with: pip install -r requirements-build.txt
+-r requirements.txt
+pyinstaller>=6.16        # First releases supporting Python 3.14
+pillow                   # Lets PyInstaller turn ma_logo.png into the .exe icon

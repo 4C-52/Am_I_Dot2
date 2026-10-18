@@ -1,0 +1,20 @@
+<!DOCTYPE RCC><RCC version="1.0">
+
+    <!-- Every time you update this file run: -->
+    <!-- pyside6-rcc gui/resources.qrc -o resources_rc.py  -->
+
+<qresource prefix="icons">
+    <file>../media/gui_icons/ma_logo.png</file>
+    <file>../media/gui_icons/close_file.svg</file>
+    <file>../media/gui_icons/configure_am_i_dot2.svg</file>
+    <file>../media/gui_icons/github_logo.svg</file>
+    <file>../media/gui_icons/help.svg</file>
+    <file>../media/gui_icons/new_file.svg</file>
+    <file>../media/gui_icons/open_file.svg</file>
+    <file>../media/gui_icons/profiles.svg</file>
+    <file>../media/gui_icons/quit_app.svg</file>
+    <file>../media/gui_icons/refresh.svg</file>
+    <file>../media/gui_icons/settings.svg</file>
+    <file>../media/gui_icons/wrench.svg</file>
+</qresource>
+</RCC>

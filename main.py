@@ -1,60 +1,116 @@
-"""Entry point: sets up the MidiController and starts the main loop."""
-
-from packages.midi_controller import MidiController
+"""Entry point: builds the main window and the MidiController, then starts the Qt event loop."""
+import os
+import shutil
 import sys
-import re
 from functools import partial
-from PySide6.QtWidgets import QApplication, QMainWindow
-from packages.gui import Ui_MainWindow
+
 from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
+
+from packages import profile_manager
+from packages.app_info import (APP_NAME, BUNDLED_PROFILE_PATH, CONFIGURING_AM_I_DOT2_URL,
+                               GITHUB_PAGE_URL, MANAGE_PROFILES_URL, open_in_browser)
+from packages.app_settings import AppSettings
+from packages.dialogs.connection_error_dialog import ask_retry_connection
+from packages.dialogs.preferences_dialog import PreferencesDialog
+from packages.dialogs.profiles_dialog import ProfilesDialog
+from packages.error_handler import install_global_exception_hook, show_error
+from packages.gui_main_window import Ui_MainWindow
+from packages.midi_controller import MidiController
+from packages.profile_manager import (DEFAULT_PROFILE_FILENAME, NEW_PROFILE_FILENAME,
+                                      PROFILE_FILE_FILTER, ProfileError, profile_display_name)
+from packages.version_checker import VersionChecker, show_update_dialog
+from packages.web_socket_handler import STATUS_CONNECTED, STATUS_CONNECTING
 
 POLLING_INTERVAL = 10  # Interval between midi polls in milliseconds
+DOT2_CONNECTION_TIMEOUT_MS = 5000  # How long to wait for the console before offering to retry
+DOT2_CONNECTION_POLL_MS = 250  # How often the connection progress is checked
+STATUS_MESSAGE_MS = 5000  # How long temporary messages stay in the status bar
 
 #TODO:
-# 1. [DONE] Initiate button callbacks
-# 2.        Make a function to handle fader buttons in midi controller and web socket handler
-# 3. [DONE] Handle label changes for buttons (Short name: the one on the button, long name: the one in the tooltip, if no long name provided set it the same as short name)
-# 4. [DONE] Handle background color changes for buttons
-# 5.        Create an animation for toggled buttons in GUI
-# 6. [DONE] Make a set_value function for GUI faders so that when physical faders are moved they move too
-# 7.        Feedback from Dot2 for fader value
-# 8. [DONE] Save label and color data
-# 9. [DONE] Load label and color data
-# 10.       Fix select_color for UI
-# 11.       Have a black outline for text
-# 12.       Make GUI to send commands
-# 13.       Make device to use the GUI
-# 14.       Make GUi for every window, like playbacks, groups, commands...
-#TODO:
+# Create an animation for toggled buttons in GUI
+# Feedback from Dot2 for fader value
+# Fix select_color for UI
+# Make GUI to send commands
+# Make device to use the GUI
+# Make GUi for every window, like playbacks, groups, commands...
 
 class MainApp(QMainWindow):
-    def __init__(self):
+    def __init__(self, settings=None):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self._base_window_title = self.windowTitle()
 
-        self.wing1_buttons = {0: self.ui.button0, 1: self.ui.button1, 2: self.ui.button2, 3: self.ui.button3, 4: self.ui.button4, 5: self.ui.button5, 6: self.ui.button6, 7: self.ui.button7, 8: self.ui.button8, 9: self.ui.button9, 10: self.ui.button10, 11: self.ui.button11, 12: self.ui.button12, 13: self.ui.button13, 14: self.ui.button14, 15: self.ui.button15, 16: self.ui.button16, 17: self.ui.button17, 18: self.ui.button18, 19: self.ui.button19, 20: self.ui.button20, 21: self.ui.button21, 22: self.ui.button22, 23: self.ui.button23, 24: self.ui.button24, 25: self.ui.button25, 26: self.ui.button26, 27: self.ui.button27, 28: self.ui.button28, 29: self.ui.button29, 30: self.ui.button30, 31: self.ui.button31, 32: self.ui.button32, 33: self.ui.button33, 34: self.ui.button34, 35: self.ui.button35, 36: self.ui.button36, 37: self.ui.button37, 38: self.ui.button38, 39: self.ui.button39, 40: self.ui.button40, 41: self.ui.button41, 42: self.ui.button42, 43: self.ui.button43, 44: self.ui.button44, 45: self.ui.button45, 46: self.ui.button46, 47: self.ui.button47, 48: self.ui.button48, 49: self.ui.button49, 50: self.ui.button50, 51: self.ui.button51, 52: self.ui.button52, 53: self.ui.button53, 54: self.ui.button54, 55: self.ui.button55, 56: self.ui.button56, 57: self.ui.button57, 58: self.ui.button58, 59: self.ui.button59, 60: self.ui.button60, 61: self.ui.button61, 62: self.ui.button62, 63: self.ui.button63, 100: self.ui.button100, 101: self.ui.button101, 102: self.ui.button102, 103: self.ui.button103, 104: self.ui.button104, 105: self.ui.button105, 106: self.ui.button106, 107: self.ui.button107, 112: self.ui.button112, 113: self.ui.button113, 114: self.ui.button114, 115: self.ui.button115, 116: self.ui.button116, 117: self.ui.button117, 118: self.ui.button118, 119: self.ui.button119, 122: self.ui.button122}
-        self.wing2_buttons = {0: self.ui.button0_2, 1: self.ui.button1_2, 2: self.ui.button2_2, 3: self.ui.button3_2, 4: self.ui.button4_2, 5: self.ui.button5_2, 6: self.ui.button6_2, 7: self.ui.button7_2, 8: self.ui.button8_2, 9: self.ui.button9_2, 10: self.ui.button10_2, 11: self.ui.button11_2, 12: self.ui.button12_2, 13: self.ui.button13_2, 14: self.ui.button14_2, 15: self.ui.button15_2, 16: self.ui.button16_2, 17: self.ui.button17_2, 18: self.ui.button18_2, 19: self.ui.button19_2, 20: self.ui.button20_2, 21: self.ui.button21_2, 22: self.ui.button22_2, 23: self.ui.button23_2, 24: self.ui.button24_2, 25: self.ui.button25_2, 26: self.ui.button26_2, 27: self.ui.button27_2, 28: self.ui.button28_2, 29: self.ui.button29_2, 30: self.ui.button30_2, 31: self.ui.button31_2, 32: self.ui.button32_2, 33: self.ui.button33_2, 34: self.ui.button34_2, 35: self.ui.button35_2, 36: self.ui.button36_2, 37: self.ui.button37_2, 38: self.ui.button38_2, 39: self.ui.button39_2, 40: self.ui.button40_2, 41: self.ui.button41_2, 42: self.ui.button42_2, 43: self.ui.button43_2, 44: self.ui.button44_2, 45: self.ui.button45_2, 46: self.ui.button46_2, 47: self.ui.button47_2, 48: self.ui.button48_2, 49: self.ui.button49_2, 50: self.ui.button50_2, 51: self.ui.button51_2, 52: self.ui.button52_2, 53: self.ui.button53_2, 54: self.ui.button54_2, 55: self.ui.button55_2, 56: self.ui.button56_2, 57: self.ui.button57_2, 58: self.ui.button58_2, 59: self.ui.button59_2, 60: self.ui.button60_2, 61: self.ui.button61_2, 62: self.ui.button62_2, 63: self.ui.button63_2, 100: self.ui.button100_2, 101: self.ui.button101_2, 102: self.ui.button102_2, 103: self.ui.button103_2, 104: self.ui.button104_2, 105: self.ui.button105_2, 106: self.ui.button106_2, 107: self.ui.button107_2, 112: self.ui.button112_2, 113: self.ui.button113_2, 114: self.ui.button114_2, 115: self.ui.button115_2, 116: self.ui.button116_2, 117: self.ui.button117_2, 118: self.ui.button118_2, 119: self.ui.button119_2, 122: self.ui.button122_2}
-        self.wing1_faders = {48: self.ui.fader48, 49: self.ui.fader49, 50: self.ui.fader50, 51: self.ui.fader51, 52: self.ui.fader52, 53: self.ui.fader53, 54: self.ui.fader54, 55: self.ui.fader55, 56: self.ui.fader56}
-        self.wing2_faders = {48: self.ui.fader48_2, 49: self.ui.fader49_2, 50: self.ui.fader50_2, 51: self.ui.fader51_2, 52: self.ui.fader52_2, 53: self.ui.fader53_2, 54: self.ui.fader54_2, 55: self.ui.fader55_2, 56: self.ui.fader56_2}
-        self.wing1_fader_buttons = {48: self.ui.pushButton_fader48, 49: self.ui.pushButton_fader49, 50: self.ui.pushButton_fader50, 51: self.ui.pushButton_fader51, 52: self.ui.pushButton_fader52, 53: self.ui.pushButton_fader53, 54: self.ui.pushButton_fader54, 55: self.ui.pushButton_fader55, 56: self.ui.pushButton_fader56}
-        self.wing2_fader_buttons = {48: self.ui.pushButton_fader48_2, 49: self.ui.pushButton_fader49_2, 50: self.ui.pushButton_fader50_2, 51: self.ui.pushButton_fader51_2, 52: self.ui.pushButton_fader52_2, 53: self.ui.pushButton_fader53_2, 54: self.ui.pushButton_fader54_2, 55: self.ui.pushButton_fader55_2, 56: self.ui.pushButton_fader56_2}
+        self.wing1_buttons = {0: self.ui.button0_4, 1: self.ui.button1_4, 2: self.ui.button2_4, 3: self.ui.button3_4, 4: self.ui.button4_4, 5: self.ui.button5_4, 6: self.ui.button6_4, 7: self.ui.button7_4, 8: self.ui.button8_4, 9: self.ui.button9_4, 10: self.ui.button10_4, 11: self.ui.button11_4, 12: self.ui.button12_4, 13: self.ui.button13_4, 14: self.ui.button14_4, 15: self.ui.button15_4, 16: self.ui.button16_4, 17: self.ui.button17_4, 18: self.ui.button18_4, 19: self.ui.button19_4, 20: self.ui.button20_4, 21: self.ui.button21_4, 22: self.ui.button22_4, 23: self.ui.button23_4, 24: self.ui.button24_4, 25: self.ui.button25_4, 26: self.ui.button26_4, 27: self.ui.button27_4, 28: self.ui.button28_4, 29: self.ui.button29_4, 30: self.ui.button30_4, 31: self.ui.button31_4, 32: self.ui.button32_4, 33: self.ui.button33_4, 34: self.ui.button34_4, 35: self.ui.button35_4, 36: self.ui.button36_4, 37: self.ui.button37_4, 38: self.ui.button38_4, 39: self.ui.button39_4, 40: self.ui.button40_4, 41: self.ui.button41_4, 42: self.ui.button42_4, 43: self.ui.button43_4, 44: self.ui.button44_4, 45: self.ui.button45_4, 46: self.ui.button46_4, 47: self.ui.button47_4, 48: self.ui.button48_4, 49: self.ui.button49_4, 50: self.ui.button50_4, 51: self.ui.button51_4, 52: self.ui.button52_4, 53: self.ui.button53_4, 54: self.ui.button54_4, 55: self.ui.button55_4, 56: self.ui.button56_4, 57: self.ui.button57_4, 58: self.ui.button58_4, 59: self.ui.button59_4, 60: self.ui.button60_4, 61: self.ui.button61_4, 62: self.ui.button62_4, 63: self.ui.button63_4, 100: self.ui.button100_4, 101: self.ui.button101_4, 102: self.ui.button102_4, 103: self.ui.button103_4, 104: self.ui.button104_4, 105: self.ui.button105_4, 106: self.ui.button106_4, 107: self.ui.button107_4, 112: self.ui.button112_4, 113: self.ui.button113_4, 114: self.ui.button114_4, 115: self.ui.button115_4, 116: self.ui.button116_4, 117: self.ui.button117_4, 118: self.ui.button118_4, 119: self.ui.button119_4, 122: self.ui.button122_4}
+        self.wing2_buttons = {0: self.ui.button0_6, 1: self.ui.button1_6, 2: self.ui.button2_6, 3: self.ui.button3_6, 4: self.ui.button4_6, 5: self.ui.button5_6, 6: self.ui.button6_6, 7: self.ui.button7_6, 8: self.ui.button8_6, 9: self.ui.button9_6, 10: self.ui.button10_6, 11: self.ui.button11_6, 12: self.ui.button12_6, 13: self.ui.button13_6, 14: self.ui.button14_6, 15: self.ui.button15_6, 16: self.ui.button16_6, 17: self.ui.button17_6, 18: self.ui.button18_6, 19: self.ui.button19_6, 20: self.ui.button20_6, 21: self.ui.button21_6, 22: self.ui.button22_6, 23: self.ui.button23_6, 24: self.ui.button24_6, 25: self.ui.button25_6, 26: self.ui.button26_6, 27: self.ui.button27_6, 28: self.ui.button28_6, 29: self.ui.button29_6, 30: self.ui.button30_6, 31: self.ui.button31_6, 32: self.ui.button32_6, 33: self.ui.button33_6, 34: self.ui.button34_6, 35: self.ui.button35_6, 36: self.ui.button36_6, 37: self.ui.button37_6, 38: self.ui.button38_6, 39: self.ui.button39_6, 40: self.ui.button40_6, 41: self.ui.button41_6, 42: self.ui.button42_6, 43: self.ui.button43_6, 44: self.ui.button44_6, 45: self.ui.button45_6, 46: self.ui.button46_6, 47: self.ui.button47_6, 48: self.ui.button48_6, 49: self.ui.button49_6, 50: self.ui.button50_6, 51: self.ui.button51_6, 52: self.ui.button52_6, 53: self.ui.button53_6, 54: self.ui.button54_6, 55: self.ui.button55_6, 56: self.ui.button56_6, 57: self.ui.button57_6, 58: self.ui.button58_6, 59: self.ui.button59_6, 60: self.ui.button60_6, 61: self.ui.button61_6, 62: self.ui.button62_6, 63: self.ui.button63_6, 100: self.ui.button100_6, 101: self.ui.button101_6, 102: self.ui.button102_6, 103: self.ui.button103_6, 104: self.ui.button104_6, 105: self.ui.button105_6, 106: self.ui.button106_6, 107: self.ui.button107_6, 112: self.ui.button112_6, 113: self.ui.button113_6, 114: self.ui.button114_6, 115: self.ui.button115_6, 116: self.ui.button116_6, 117: self.ui.button117_6, 118: self.ui.button118_6, 119: self.ui.button119_6, 122: self.ui.button122_6}
+        self.wing1_faders = {48: self.ui.fader48_4, 49: self.ui.fader49_4, 50: self.ui.fader50_4, 51: self.ui.fader51_4, 52: self.ui.fader52_4, 53: self.ui.fader53_4, 54: self.ui.fader54_4, 55: self.ui.fader55_4, 56: self.ui.fader56_4}
+        self.wing2_faders = {48: self.ui.fader48_6, 49: self.ui.fader49_6, 50: self.ui.fader50_6, 51: self.ui.fader51_6, 52: self.ui.fader52_6, 53: self.ui.fader53_6, 54: self.ui.fader54_6, 55: self.ui.fader55_6, 56: self.ui.fader56_6}
+        self.wing1_fader_buttons = {48: self.ui.pushButton_fader48_4, 49: self.ui.pushButton_fader49_4, 50: self.ui.pushButton_fader50_4, 51: self.ui.pushButton_fader51_4, 52: self.ui.pushButton_fader52_4, 53: self.ui.pushButton_fader53_4, 54: self.ui.pushButton_fader54_4, 55: self.ui.pushButton_fader55_4, 56: self.ui.pushButton_fader56_4}
+        self.wing2_fader_buttons = {48: self.ui.pushButton_fader48_6, 49: self.ui.pushButton_fader49_6, 50: self.ui.pushButton_fader50_6, 51: self.ui.pushButton_fader51_6, 52: self.ui.pushButton_fader52_6, 53: self.ui.pushButton_fader53_6, 54: self.ui.pushButton_fader54_6, 55: self.ui.pushButton_fader55_6, 56: self.ui.pushButton_fader56_6}
+        self.menu = {
+            "file":{
+                "new_file": self.ui.actionNewFile,
+                "open_file": self.ui.actionOpenFile,
+                "close_file": self.ui.actionCloseFile,
+                "quit_app": self.ui.actionQuitApp
+            },
+            "wings": {
+                "view_wing1": self.ui.actionViewWing1,
+                "view_wing2": self.ui.actionViewWing2,
+                "toggle_wing1": self.ui.actionWing_1_Enabled,
+                "toggle_wing2": self.ui.actionWing_2_Enabled
+            },
+            "settings": {
+                "preferences": self.ui.actionPreferences,
+                "profiles": self.ui.actionProfiles
+            },
+            "tools": {
+                "refresh_gui": self.ui.actionRefresh_GUI,
+                "refresh_profile": self.ui.actionRefresh_Profile,
+                "config_mode": self.ui.actionConfig_Mode
+            },
+            "help": {
+                "github_page": self.ui.actionGithub,
+                "configuring_am_i_dot2": self.ui.actionConfiguring_Am_I_Dot_2,
+                "manage_profiles": self.ui.actionCreate_a_profile,
+                "contact_help": self.ui.actionContact_Help
+            }
+        }
+
+        # Settings live outside the app folder (see AppSettings) and tell us which profile to open
+        self.settings = settings if settings is not None else AppSettings().load()
 
         self.controller = MidiController()
         self.controller.send_gui_instance(gui_instance=self)
-        self.controller.setup()
+        self.controller.setup(self._resolve_startup_profile(), parent_widget=self)
+        self._remember_current_profile()
 
+        self.menu_actions = self._build_menu_actions()
         self.assign_callbacks()
 
         self.midi_timer = QTimer()
         self.midi_timer.timeout.connect(self.controller.poll)
         self.midi_timer.start(POLLING_INTERVAL)
 
+        self._dot2_connection_timer = QTimer(self)
+        self._dot2_connection_timer.timeout.connect(self._poll_dot2_connection)
+        self._dot2_connection_wait_ms = 0
+
+        self.version_checker = VersionChecker()
+        self.version_checker.update_available.connect(self._on_update_available)
+
+    def start(self):
+        """Background work that should only begin once the window is shown."""
+        self.start_dot2_connection()
+        self.version_checker.check_in_background()
+
     # =================================================================
-    #                          Tools/Utils
+    #                          GUI helpers
     # =================================================================
 
-    def invert_hex_color(self, hex_color: str) -> str:
+    @staticmethod
+    def invert_hex_color(hex_color: str) -> str:
         """
         Takes a hex color string (e.g. "#RRGGBB" or "RRGGBB")
         and returns the inverted hex color.
@@ -70,7 +126,19 @@ class MainApp(QMainWindow):
 
         return f"#{r:02X}{g:02X}{b:02X}"
 
-    def get_button_background_color(self, button):
+    @staticmethod
+    def _repolish(widget):
+        """Forces Qt to re-apply the stylesheet of a widget after it changed."""
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
+
+    def _all_buttons(self):
+        """(note, button) pairs of both wings."""
+        return list(self.wing1_buttons.items()) + list(self.wing2_buttons.items())
+
+    @staticmethod
+    def get_button_background_color(button):
         return button.property("bg_color")
 
     def get_button_instance(self, button_id, device_id):
@@ -104,6 +172,261 @@ class MainApp(QMainWindow):
         button = self.get_button_instance(button_id, device_id)
         button.setStyleSheet(f"background-color: {hex_color};")
         button.setProperty("bg_color", hex_color) # to easily get the color later on
+        self._repolish(button)
+
+    def set_temp_button_color(self, button_id, device_id, hex_color):
+        if hex_color is None:
+            return
+        button = self.get_button_instance(button_id, device_id)
+        button.setStyleSheet(f"background-color: {hex_color};")
+        self._repolish(button)
+
+    def restore_permanent_button_color(self, button_id, device_id):
+        button = self.get_button_instance(button_id, device_id)
+        hex_color = button.property("bg_color")
+        button.setStyleSheet(f"background-color: {hex_color};")
+        self._repolish(button)
+
+    def refresh_gui(self):
+        for _, button in self._all_buttons():
+            self._repolish(button)
+
+    def clear_all_buttons(self):
+        """Removes colors, labels and tooltips from every pad of both wings (done before loading another profile)."""
+        for note, button in self._all_buttons():
+            button.setText(str(note))
+            button.setToolTip("")
+            button.setProperty("bg_color", None)
+            button.setStyleSheet("")
+            self._repolish(button)
+
+    def toggle_view_wing(self, wing_id):
+        if wing_id == 1:
+            if self.wing_shown(wing_id):
+                self.ui.wing_1.hide()
+            else:
+                self.ui.wing_1.show()
+        elif wing_id == 2:
+            if self.wing_shown(wing_id):
+                self.ui.wing_2.hide()
+            else:
+                self.ui.wing_2.show()
+        self.resize_to_smallest_size()
+
+    def wing_shown(self, wing_id):
+        return self.ui.wing_1.isVisible() if wing_id == 1 else self.ui.wing_2.isVisible()
+
+    #TODO
+    def resize_to_smallest_size(self):
+        pass
+
+    def toggle_check_menu_button(self, menu_id, button_id):
+        menu_action = self.menu[menu_id][button_id]
+        if menu_action.isCheckable():
+            state = menu_action.isChecked()
+            menu_action.setChecked(not state)
+
+    def set_blank_gui(self):
+        for _, button in self._all_buttons():
+            button.setStyleSheet('background-color: "FFFFFF";')
+            self._repolish(button)
+
+    def restore_all_permanent_gui_button_colors(self):
+        for button in range(len(self.wing1_buttons)-1):
+            self.restore_permanent_button_color(button, device_id=1)
+            self.restore_permanent_button_color(button, device_id=2)
+
+    # =================================================================
+    #                          Profiles
+    # =================================================================
+
+    def _resolve_startup_profile(self):
+        """
+        Path of the profile to load at startup: the last one used if it still
+        exists, else the default profile of the profiles folder (created from
+        the data.json shipped with the app when there is none yet). An invalid
+        file is reported to the user and replaced by a blank profile.
+        """
+        candidate = self.settings.last_profile_path
+        if not (candidate and os.path.isfile(candidate)):
+            candidate = self._create_default_profile_if_missing()
+
+        problem = profile_manager.check_profile_file(candidate)
+        if problem is None:
+            return candidate
+
+        fallback = profile_manager.unique_profile_path(self.settings.profiles_folder, NEW_PROFILE_FILENAME)
+        profile_manager.create_blank_profile(fallback)
+        show_error(f'The profile "{candidate}" could not be loaded:\n{problem}\n\n'
+                   f'A blank profile has been created instead:\n{fallback}',
+                   title="Profile error", parent=self)
+        return fallback
+
+    def _create_default_profile_if_missing(self):
+        """Makes sure <profiles folder>/default.json exists, seeding it from the app's data.json when possible."""
+        os.makedirs(self.settings.profiles_folder, exist_ok=True)
+        default_path = os.path.join(self.settings.profiles_folder, DEFAULT_PROFILE_FILENAME)
+        if os.path.isfile(default_path):
+            return default_path
+
+        if BUNDLED_PROFILE_PATH.is_file():
+            shutil.copy2(BUNDLED_PROFILE_PATH, default_path)
+        else:
+            profile_manager.create_blank_profile(default_path)
+        return default_path
+
+    def _remember_current_profile(self):
+        """Saves the current profile as the one to reopen next time and shows its name in the title bar."""
+        path = self.controller.DATA_FILEPATH
+        self.settings.last_profile_path = path
+        self._save_settings()
+        self.setWindowTitle(f"{self._base_window_title} - {profile_display_name(path)}")
+
+    def _save_settings(self):
+        try:
+            self.settings.save()
+        except OSError as error:
+            print(f"Warning: the settings could not be saved: {error}")
+
+    def load_profile(self, path):
+        """
+        Loads a profile into the controllers and the GUI, then remembers it as
+        the current one. Returns True on success, False if the file is not a
+        valid profile (the user is told, nothing changes).
+        """
+        try:
+            self.controller.load_profile(path)
+        except ProfileError as error:
+            show_error(f"The profile could not be opened:\n{path}\n\n{error}", title="Profile error", parent=self)
+            return False
+
+        self._remember_current_profile()
+        self.ui.statusbar.showMessage(f"Profile loaded: {path}", STATUS_MESSAGE_MS)
+        if self.controller.dot2_settings_changed():
+            self.controller.restart_dot2_connection()
+            self._watch_dot2_connection()
+        return True
+
+    def open_profile_from_explorer(self):
+        """File > Open: picks a profile with the file explorer and loads it."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open a profile", self.settings.profiles_folder, PROFILE_FILE_FILTER
+        )
+        if path:
+            self.load_profile(path)
+
+    def create_new_profile_from_explorer(self):
+        """
+        File > New: picks a name with the file explorer, creates a blank profile
+        (keeping the current console and MIDI settings) and loads it.
+        """
+        suggested_path = os.path.join(self.settings.profiles_folder, NEW_PROFILE_FILENAME)
+        path, _ = QFileDialog.getSaveFileName(self, "Create a new profile", suggested_path, PROFILE_FILE_FILTER)
+        if not path:
+            return
+
+        path = profile_manager.ensure_profile_extension(path)
+        try:
+            profile_manager.create_blank_profile(path, base_profile=self.controller.read_current_profile())
+        except (OSError, ValueError) as error:
+            show_error(f"The profile could not be created:\n{path}\n\n{error}", title="Profile error", parent=self)
+            return
+        self.load_profile(path)
+
+    def open_profiles_window(self):
+        """Settings > Profiles: choose the profiles folder and optionally switch to one of its profiles."""
+        dialog = ProfilesDialog(self.settings.profiles_folder,
+                                current_profile_path=self.controller.DATA_FILEPATH, parent=self)
+        accepted = bool(dialog.exec())
+        folder, selected_profile = dialog.selected_folder, dialog.selected_profile_path
+        dialog.deleteLater()
+        if not accepted:
+            return
+
+        self.settings.profiles_folder = folder
+        self._save_settings()
+        if selected_profile and not profile_manager.is_same_file(selected_profile, self.controller.DATA_FILEPATH):
+            self.load_profile(selected_profile)
+
+    # =================================================================
+    #                          Preferences
+    # =================================================================
+
+    def open_preferences_window(self):
+        """Settings > Preferences: dot2 password and IP address, MIDI ports of both controllers."""
+        dialog = PreferencesDialog(self.controller, parent=self)
+        accepted = bool(dialog.exec())
+        password, ip_address = dialog.password, dialog.ip_address
+        dialog.deleteLater()
+        if not accepted:
+            return
+        if (ip_address, password) == (self.controller.host, self.controller.plaintext_password):
+            return  # Nothing changed, keep the current connection
+
+        try:
+            self.controller.set_dot2_settings(host=ip_address, password=password)
+        except OSError as error:
+            show_error(f"The preferences could not be saved in the profile:\n{error}",
+                       title="Preferences error", parent=self)
+            return
+        self.controller.restart_dot2_connection()
+        self._watch_dot2_connection()
+
+    # =================================================================
+    #                        Dot2 connection
+    # =================================================================
+
+    def start_dot2_connection(self):
+        self.controller.start_dot2_connection()
+        self._watch_dot2_connection()
+
+    def _watch_dot2_connection(self):
+        """Follows the connection progress with a timer, so the GUI never freezes while waiting."""
+        self._dot2_connection_wait_ms = 0
+        self.ui.statusbar.showMessage(f"Connecting to the dot2 at {self.controller.host}...")
+        self._dot2_connection_timer.start(DOT2_CONNECTION_POLL_MS)
+
+    def _poll_dot2_connection(self):
+        self._dot2_connection_wait_ms += DOT2_CONNECTION_POLL_MS
+        status = self.controller.dot2_connection_status()
+        if status == STATUS_CONNECTING and self._dot2_connection_wait_ms < DOT2_CONNECTION_TIMEOUT_MS:
+            return  # Still trying, check again later
+
+        self._dot2_connection_timer.stop()
+        if status == STATUS_CONNECTED:
+            self.ui.statusbar.showMessage(f"Connected to the dot2 at {self.controller.host}")
+            return
+
+        self.ui.statusbar.showMessage("Not connected to the dot2")
+        retry = ask_retry_connection(self.controller.host, status, DOT2_CONNECTION_TIMEOUT_MS // 1000, parent=self)
+        if retry:
+            self.controller.restart_dot2_connection()
+            self._watch_dot2_connection()
+
+    # =================================================================
+    #                          Updates
+    # =================================================================
+
+    def _on_update_available(self, latest_version, release_url):
+        show_update_dialog(latest_version, release_url, parent=self)
+
+    # =================================================================
+    #                          Tools/utils
+    # =================================================================
+
+    def exit_app(self):
+        """File > Quit: closes the window, which ends the app (see closeEvent)."""
+        self.close()
+
+    def closeEvent(self, event):
+        """Runs however the window is closed (Quit, window X button, Alt+F4): stops everything cleanly."""
+        self.midi_timer.stop()
+        self._dot2_connection_timer.stop()
+        try:
+            self.controller.shutdown()
+        except Exception as error:  # An unplugged controller must not prevent quitting
+            print(f"Error while shutting down: {error}")
+        super().closeEvent(event)
 
     # =================================================================
     #                          Callbacks
@@ -112,33 +435,30 @@ class MainApp(QMainWindow):
     def assign_callbacks(self):
         # Button callback assignment
         for note, btn in self.wing1_buttons.items():
-            btn.pressed.connect(partial(self._on_button_pressed,
-                                        note=note, device_id=1))
-            btn.released.connect(partial(self._on_button_released,
-                                         note=note, device_id=1))
-
+            btn.pressed.connect(partial(self._on_button_pressed, note=note, device_id=1))
+            btn.released.connect(partial(self._on_button_released, note=note, device_id=1))
         for note, btn in self.wing2_buttons.items():
-            btn.pressed.connect(partial(self._on_button_pressed,
-                                        note=note, device_id=2))
-            btn.released.connect(partial(self._on_button_released,
-                                         note=note, device_id=2))
-
-        # Fader Button callback assignment
-        # TODO: THIS IS NOT DONE YET!!!!!!!
-        """for cc, fbtn in self.wing1_fader_buttons.items():
-            fbtn.pressed.connect(partial(self.controller. ...))
-            fbtn.released.connect(partial(self.controller. ...))
-        for cc, fbtn in self.wing2_fader_buttons.items():
-            fbtn.pressed.connect(partial(self.controller. ...))
-            fbtn.released.connect(partial(self.controller. ...))"""
-        # TODO: THIS IS NOT DONE YET!!!!!!!
+            btn.pressed.connect(partial(self._on_button_pressed, note=note, device_id=2))
+            btn.released.connect(partial(self._on_button_released, note=note, device_id=2))
 
         # Fader callback assignment
         for cc, fader in self.wing1_faders.items():
             fader.valueChanged.connect(partial(self._on_fader_changed, cc=cc, device_id=1))
-
         for cc, fader in self.wing2_faders.items():
             fader.valueChanged.connect(partial(self._on_fader_changed, cc=cc, device_id=2))
+
+        # Fader Button callback assignment
+        for cc, fbtn in self.wing1_fader_buttons.items():
+            fbtn.pressed.connect(partial(self._on_fader_button_pressed, cc=cc, device_id=1))
+            fbtn.released.connect(partial(self._on_fader_button_released, cc=cc, device_id=1))
+        for cc, fbtn in self.wing2_fader_buttons.items():
+            fbtn.pressed.connect(partial(self._on_fader_button_pressed, cc=cc, device_id=2))
+            fbtn.released.connect(partial(self._on_fader_button_released, cc=cc, device_id=2))
+
+        # Menu button callback assignment
+        for menu_id, menu_content in self.menu.items():
+            for button_id, btn in menu_content.items():
+                btn.triggered.connect(partial(self._on_menu_button_triggered, menu_id=menu_id, button_id=button_id))
 
     def _on_fader_changed(self, value, cc, device_id):
         self.controller.imitate_midi_message(
@@ -152,11 +472,44 @@ class MainApp(QMainWindow):
         self.controller.imitate_midi_message(
             type="note_off", channel=0, note=note, velocity=0, device_id=device_id)
 
+    def _on_fader_button_pressed(self, cc, device_id):
+        # This does not imitate a midi message because it is not a midi button, it's only GUI side
+        self.controller.fader_button_handler(cc=cc, device_id=device_id, pressed=True)
+
+    def _on_fader_button_released(self, cc, device_id):
+        # This does not imitate a midi message because it is not a midi button, it's only GUI side
+        self.controller.fader_button_handler(cc=cc, device_id=device_id, pressed=False)
+
+    def _build_menu_actions(self):
+        """(menu_id, button_id) -> what to do when that menu entry is triggered. Entries not listed here do nothing yet."""
+        return {
+            ("file", "new_file"): self.create_new_profile_from_explorer,
+            ("file", "open_file"): self.open_profile_from_explorer,
+            ("file", "quit_app"): self.exit_app,
+            ("wings", "view_wing1"): partial(self.toggle_view_wing, wing_id=1),
+            ("wings", "view_wing2"): partial(self.toggle_view_wing, wing_id=2),
+            ("settings", "preferences"): self.open_preferences_window,
+            ("settings", "profiles"): self.open_profiles_window,
+            ("tools", "refresh_gui"): self.refresh_gui,
+            ("tools", "config_mode"): self.controller.toggle_config_mode,
+            ("help", "github_page"): partial(open_in_browser, GITHUB_PAGE_URL),
+            ("help", "configuring_am_i_dot2"): partial(open_in_browser, CONFIGURING_AM_I_DOT2_URL),
+            ("help", "manage_profiles"): partial(open_in_browser, MANAGE_PROFILES_URL),
+        }
+
+    def _on_menu_button_triggered(self, menu_id, button_id):
+        action = self.menu_actions.get((menu_id, button_id))
+        if action is not None:
+            action()
 
 def main():
     app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
+    install_global_exception_hook()
+
     window = MainApp()
     window.show()
+    window.start()
     sys.exit(app.exec())
 
 if __name__ == "__main__":

@@ -1,44 +1,33 @@
 import json
-import hashlib
-import time
 import threading
 import websocket
+
+from packages.utils import md5_hex
+
+# Values returned by connection_status()
+STATUS_CONNECTING = "connecting"
+STATUS_CONNECTED = "connected"
+STATUS_LOGIN_FAILED = "login_failed"
+STATUS_UNREACHABLE = "unreachable"
+
 
 class Dot2WebSocketHandler:
     def __init__(self,
                  host="10.0.0.50",
-                 username="remote",
                  password="1",
                  heartbeat_step=10,
-                 debug=True,
-
-                 bwing_start_index=[300, 400, 500, 600, 700, 800],
-                 bwing_items_count=[16, 16, 16, 16, 16, 16],
-                 bwing_items_type=[3, 3, 3, 3, 3, 3],
-                 bwing_view=3,
-                 bwing_exec_view_mode=2,
-
-                 fwing_start_index=[0, 100, 200],
-                 fwing_items_count=[22, 22, 22],
-                 fwing_items_type=[2, 3, 3],
-                 fwing_view=3,
-                 fwing_exec_view_mode=2,
+                 debug=True
                  ):
-        self.HOST = host
-        self.URL = f"ws://{self.HOST}/?ma=1"
-        self.ORIGIN = f"http://{self.HOST}"
-        self.USERNAME = username
-        self.PLAINTEXT_PASSWORD = password
-        self.PASSWORD_MD5 = hashlib.md5(self.PLAINTEXT_PASSWORD.encode("utf-8")).hexdigest()
+        self.USERNAME = "remote"
         self.HEARTBEAT_STEP = heartbeat_step
         self.DEBUG = debug
+        self.update_credentials(host, password)
 
-        self.session_id = None
-        self.logged_in = False
-        self.stop_heartbeat = False
         self.ws = None
         self._ws_thread = None
         self._heartbeat_thread = None
+        self._stop_event = threading.Event()
+        self._reset_connection_state()
 
         # Callback registry: { "requestType": [callable, ...] }
         self._callbacks = {}
@@ -46,17 +35,17 @@ class Dot2WebSocketHandler:
         self._one_shot_callbacks = {}
         self._callbacks_lock = threading.Lock()
 
-        self.BWING_START_INDEX = bwing_start_index
-        self.BWING_ITEMS_COUNT = bwing_items_count
-        self.BWING_ITEMS_TYPE = bwing_items_type
-        self.BWING_VIEW = bwing_view
-        self.BWING_EXEC_VIEW_MODE = bwing_exec_view_mode
+        self.BWING_START_INDEX = [300, 400, 500, 600, 700, 800]
+        self.BWING_ITEMS_COUNT = [16, 16, 16, 16, 16, 16]
+        self.BWING_ITEMS_TYPE = [3, 3, 3, 3, 3, 3]
+        self.BWING_VIEW = 3
+        self.BWING_EXEC_VIEW_MODE = 2
 
-        self.FWING_START_INDEX = fwing_start_index
-        self.FWING_ITEMS_COUNT = fwing_items_count
-        self.FWING_ITEMS_TYPE = fwing_items_type
-        self.FWING_VIEW = fwing_view
-        self.FWING_EXEC_VIEW_MODE = fwing_exec_view_mode
+        self.FWING_START_INDEX = [0, 100, 200]
+        self.FWING_ITEMS_COUNT = [22, 22, 22]
+        self.FWING_ITEMS_TYPE = [2, 3, 3]
+        self.FWING_VIEW = 2
+        self.FWING_EXEC_VIEW_MODE = 1
 
     ###################################################
     #                    Callbacks                    #
@@ -140,14 +129,27 @@ class Dot2WebSocketHandler:
     ###################################################
 
     def _send(self, obj):
-        if self.ws:
+        if self.ws is None:
+            return
+        try:
             self.ws.send(json.dumps(obj, separators=(",", ":")))
+        except Exception as error:  # Socket already closed, console switched off...
+            if self.DEBUG:
+                print("Send failed:", error)
+
+    def _is_current(self, ws):
+        """False for callbacks coming from a previous connection that is being replaced."""
+        return ws is self.ws
 
     def _on_open(self, ws):
+        if not self._is_current(ws):
+            return
         if self.DEBUG:
             print("WS open")
 
     def _on_message(self, ws, msg):
+        if not self._is_current(ws):
+            return
         try:
             data = json.loads(msg)
         except Exception:
@@ -185,6 +187,7 @@ class Dot2WebSocketHandler:
                     print("Login OK")
                 self.logged_in = True
             else:
+                self.login_failed = True
                 if self.DEBUG:
                     print("Login FAILED")
             return
@@ -193,10 +196,17 @@ class Dot2WebSocketHandler:
         self._dispatch(data)
 
     def _on_error(self, ws, err):
+        if not self._is_current(ws):
+            return
+        self.last_error = str(err)
         if self.DEBUG:
             print("ERR", err)
 
     def _on_close(self, ws, code, reason):
+        if not self._is_current(ws):
+            return
+        self.connection_closed = True
+        self.logged_in = False
         if self.DEBUG:
             print("CLOSE", code, reason)
 
@@ -204,8 +214,39 @@ class Dot2WebSocketHandler:
     #                   Public API                    #
     ###################################################
 
+    def update_credentials(self, host, password):
+        """Changes the console address and password used by the next connect()."""
+        self.HOST = host
+        self.URL = f"ws://{host}/?ma=1"
+        self.ORIGIN = f"http://{host}"
+        self.PLAINTEXT_PASSWORD = password
+        self.PASSWORD_MD5 = md5_hex(password)
+
+    def connection_status(self):
+        """One of STATUS_CONNECTED, STATUS_LOGIN_FAILED, STATUS_UNREACHABLE (refused or dropped) or STATUS_CONNECTING."""
+        if self.logged_in:
+            return STATUS_CONNECTED
+        if self.login_failed:
+            return STATUS_LOGIN_FAILED
+        if self.connection_closed:
+            return STATUS_UNREACHABLE
+        return STATUS_CONNECTING
+
+    def _reset_connection_state(self):
+        self.session_id = None
+        self.logged_in = False
+        self.login_failed = False
+        self.connection_closed = False
+        self.last_error = None
+        self._stop_event = threading.Event()
+
     def connect(self):
-        self.ws = websocket.WebSocketApp(
+        """
+        Opens the websocket in a background thread and logs in. Does not block:
+        follow the progress with connection_status().
+        """
+        self._reset_connection_state()
+        ws = websocket.WebSocketApp(
             self.URL,
             header=[f"Origin: {self.ORIGIN}"],
             on_open=self._on_open,
@@ -213,22 +254,26 @@ class Dot2WebSocketHandler:
             on_error=self._on_error,
             on_close=self._on_close
         )
+        self.ws = ws
         self._ws_thread = threading.Thread(
-            target=lambda: self.ws.run_forever(skip_utf8_validation=True),
+            target=lambda: ws.run_forever(skip_utf8_validation=True),
             daemon=True
         )
         self._ws_thread.start()
-        self._heartbeat_thread = threading.Thread(target=self._heartbeat, daemon=True)
+        self._heartbeat_thread = threading.Thread(
+            target=self._heartbeat, args=(ws, self._stop_event), daemon=True
+        )
         self._heartbeat_thread.start()
 
-    def _heartbeat(self):
-        while not self.stop_heartbeat:
-            time.sleep(self.HEARTBEAT_STEP)
-            if self.session_id is not None:
+    def _heartbeat(self, ws, stop_event):
+        """Keeps the session alive until disconnect() sets the stop event of this connection."""
+        while not stop_event.wait(self.HEARTBEAT_STEP):
+            if self._is_current(ws) and self.session_id is not None:
                 self._send({"session": self.session_id})
 
     def disconnect(self):
-        self.stop_heartbeat = True
+        self._stop_event.set()
+        self.logged_in = False
         if self.ws:
             self.ws.close()
 

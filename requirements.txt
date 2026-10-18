@@ -1,0 +1,6 @@
+# Runtime dependencies. Install with: pip install -r requirements.txt
+PySide6==6.11.2          # Same version as the pyside6-uic that generated packages/gui_main_window.py
+mido==1.3.3
+python-rtmidi>=1.5,<2    # MIDI backend used by mido. Not "rtmidi", that is a different package
+websocket-client==1.9.2
+keyboard==0.13.5

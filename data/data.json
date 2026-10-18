@@ -4,10 +4,10 @@
   "default_ip_address": "192.168.0.12",
   "dot2_password": "1",
   "config_mode": 0,
-  "DEFAULT_MIDI_INPORT_DEVICE1": "APC mini mk2 4",
-  "DEFAULT_MIDI_OUTPORT_DEVICE1": "APC mini mk2 5",
-  "DEFAULT_MIDI_INPORT_DEVICE2": "MIDIIN2 (APC mini mk2) 5",
-  "DEFAULT_MIDI_OUTPORT_DEVICE2": "MIDIOUT2 (APC mini mk2) 6",
+  "DEFAULT_MIDI_INPORT_DEVICE1": "APC mini mk2:APC mini mk2 Control 32:0",
+  "DEFAULT_MIDI_OUTPORT_DEVICE1": "APC mini mk2:APC mini mk2 Control 32:0",
+  "DEFAULT_MIDI_INPORT_DEVICE2": "APC mini mk2:APC mini mk2 Control 36:0",
+  "DEFAULT_MIDI_OUTPORT_DEVICE2": "APC mini mk2:APC mini mk2 Control 36:0",
   "note_executor_dictionary_device1": {
     "0": {
       "executor_index": 213,
@@ -359,7 +359,9 @@
     },
     "4": {
       "executor_index": 217,
-      "color": -1
+      "color": 79,
+      "short_label": "test",
+      "long_label": "testtt"
     },
     "5": {
       "executor_index": 216,
@@ -371,7 +373,9 @@
     },
     "7": {
       "executor_index": 214,
-      "color": 103
+      "color": 95,
+      "short_label": "",
+      "long_label": ""
     },
     "8": {
       "executor_index": 121,
@@ -537,7 +541,9 @@
     },
     "48": {
       "executor_index": 415,
-      "color": -1
+      "color": 79,
+      "short_label": "",
+      "long_label": ""
     },
     "49": {
       "executor_index": 414,
@@ -574,7 +580,9 @@
     },
     "57": {
       "executor_index": 314,
-      "color": -1
+      "color": 126,
+      "short_label": "",
+      "long_label": ""
     },
     "58": {
       "executor_index": 313,
@@ -598,7 +606,9 @@
     },
     "63": {
       "executor_index": 308,
-      "color": -1
+      "color": 103,
+      "short_label": "",
+      "long_label": ""
     },
     "100": {
       "executor_index": 21,
