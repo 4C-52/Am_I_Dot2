@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'am_i_dot2_V2QBbqdT.ui'
+## Form generated from reading UI file 'am_i_dot2_V2kvyWWm.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -33,7 +33,6 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMaximumSize(QSize(1920, 1080))
         icon = QIcon()
         icon.addFile(u":/icons/media/gui_icons/ma_logo.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -123,10 +122,12 @@ class Ui_MainWindow(object):
         self.Wing1_dock.setProperty(u"floating", False)
         self.gridLayout = QGridLayout(self.Wing1_dock)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(0, -1, 0, -1)
         self.wing_1 = QWidget(self.Wing1_dock)
         self.wing_1.setObjectName(u"wing_1")
         self.gridLayout_3 = QGridLayout(self.wing_1)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setContentsMargins(0, -1, 0, -1)
         self.gridLayout_2 = QGridLayout()
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_5 = QGridLayout()
@@ -1458,6 +1459,7 @@ class Ui_MainWindow(object):
         self.wing_2.setEnabled(True)
         self.gridLayout_6 = QGridLayout(self.wing_2)
         self.gridLayout_6.setObjectName(u"gridLayout_6")
+        self.gridLayout_6.setContentsMargins(0, -1, 0, -1)
         self.gridLayout_4 = QGridLayout()
         self.gridLayout_4.setObjectName(u"gridLayout_4")
         self.gridLayout_7 = QGridLayout()
@@ -2806,7 +2808,6 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
         self.menuFile.addAction(self.actionNewFile)
         self.menuFile.addAction(self.actionOpenFile)
-        self.menuFile.addAction(self.actionCloseFile)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionQuitApp)
         self.menuWings.addAction(self.actionViewWing1)

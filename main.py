@@ -52,7 +52,6 @@ class MainApp(QMainWindow):
             "file":{
                 "new_file": self.ui.actionNewFile,
                 "open_file": self.ui.actionOpenFile,
-                "close_file": self.ui.actionCloseFile,
                 "quit_app": self.ui.actionQuitApp
             },
             "wings": {

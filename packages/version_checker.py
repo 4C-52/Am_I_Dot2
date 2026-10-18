@@ -18,7 +18,7 @@ from packages.app_info import (APP_NAME, APP_VERSION, GITHUB_LATEST_RELEASE_API_
                                GITHUB_RELEASES_URL, open_in_browser)
 
 REQUEST_TIMEOUT_SECONDS = 5
-VERSION_PATTERN = re.compile(r"v?(\d+(?:\.\d+)*)", re.IGNORECASE)
+VERSION_PATTERN = re.compile(r"v?(\d+(?:\.\d+)*)(.*)", re.IGNORECASE)
 
 
 # =================================================================
@@ -26,21 +26,32 @@ VERSION_PATTERN = re.compile(r"v?(\d+(?:\.\d+)*)", re.IGNORECASE)
 # =================================================================
 
 def parse_version(text):
-    """"v1.2.3" or "1.2.3-beta" -> (1, 2, 3). Anything unparsable -> ()."""
+    """
+    "v1.2.3" -> ((1, 2, 3), False)
+    "1.0.0-beta" -> ((1, 0, 0), True)   anything after the numbers marks a pre-release
+    Anything unparsable -> ((), False).
+    """
     match = VERSION_PATTERN.match((text or "").strip())
     if not match:
-        return ()
-    return tuple(int(part) for part in match.group(1).split("."))
+        return (), False
+    numbers = tuple(int(part) for part in match.group(1).split("."))
+    is_prerelease = match.group(2).strip() != ""
+    return numbers, is_prerelease
 
 
 def is_newer_version(candidate, current):
-    """True when candidate is strictly greater than current ("1.10.0" > "1.9.2")."""
-    candidate_parts = parse_version(candidate)
-    current_parts = parse_version(current)
-    if not candidate_parts or not current_parts:
+    """
+    True when candidate is strictly greater than current: "1.10.0" > "1.9.2",
+    and a final release beats its own pre-release ("1.0.0" > "1.0.0-beta").
+    Two pre-releases of the same number are equal, so give each beta its own number.
+    """
+    candidate_numbers, candidate_is_prerelease = parse_version(candidate)
+    current_numbers, current_is_prerelease = parse_version(current)
+    if not candidate_numbers or not current_numbers:
         return False
-    length = max(len(candidate_parts), len(current_parts))
-    return _pad(candidate_parts, length) > _pad(current_parts, length)
+    length = max(len(candidate_numbers), len(current_numbers))
+    return ((_pad(candidate_numbers, length), not candidate_is_prerelease)
+            > (_pad(current_numbers, length), not current_is_prerelease))
 
 
 def _pad(parts, length):

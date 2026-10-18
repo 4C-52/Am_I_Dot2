@@ -12,7 +12,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 
 APP_NAME = "Am_I_Dot2"
-APP_VERSION = "0.1.0"
+APP_VERSION = "1.0.0-beta"
 
 GITHUB_OWNER = "4C-52"
 GITHUB_REPOSITORY = "Am_I_Dot2"
