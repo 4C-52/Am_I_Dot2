@@ -26,6 +26,10 @@ class MidiController:
 
     # ---- Class-level constants (do not change between instances) ----
     FADER_NOTES = tuple(range(81, 99))
+    FADER_CONTROLS = tuple(range(48, 57))  # Control change numbers of the 9 faders (56 is the master fader)
+    FIRST_FADER_CONTROL = 48
+    # Config mode: a fader must stay still this long before touching it again opens a new prompt
+    FADER_SETTLE_SECONDS = 1.0
     NORMAL_BUTTON_NOTES = tuple(range(65))
     SPECIAL_BUTTON_NOTES = (100, 101, 102, 103, 104, 105, 106, 107,
                              112, 113, 114, 115, 116, 117, 118, 119)
@@ -83,6 +87,8 @@ class MidiController:
         self._link_in_progress = False
         # Config mode: the link waiting for the user to press a color on the palette (dict) or None
         self._pending_color_link = None
+        # Config mode: (device_id, cc) -> time of the last message received from that fader
+        self._fader_last_config_touch = {}
 
         # GUI
         self.gui_instance = None
@@ -535,17 +541,44 @@ class MidiController:
         elif device_id == 2 and str(cc) in self.cc_fader_index_dictionary_device2.keys():
             return self.cc_fader_index_dictionary_device2[str(cc)]
 
-    def link_cc_note(self, cc, device_id):
+    def _config_mode_fader_touched(self, cc, device_id):
         """
-        Updates the data.json file
-        :param cc: control change id
-        :param device_id:
-        :return:
+        A fader sends a stream of messages while it moves. Only the first message
+        of a movement opens the prompt. The rest of that movement, and any message
+        arriving within FADER_SETTLE_SECONDS after the prompt closes, is ignored.
         """
-        note = input_prompts.ask_number("Please input the id of the note", parent=self.gui_instance)
-        if note is None:
+        if cc not in self.FADER_CONTROLS:
             return
-        self.append_cc_to_json(cc=cc, note=note, device_id=device_id)
+        fader = (device_id, cc)
+        now = time.monotonic()
+        last_touch = self._fader_last_config_touch.get(fader)
+        self._fader_last_config_touch[fader] = now
+        if last_touch is not None and now - last_touch < self.FADER_SETTLE_SECONDS:
+            return  # Same movement still going on
+
+        self.link_cc_note(cc, device_id)
+        # The settle delay starts when the prompt closes, the user may still be holding the fader
+        self._fader_last_config_touch[fader] = time.monotonic()
+
+    def link_cc_note(self, cc, device_id):
+        """Config mode: asks which executor the fader controls and saves it in the profile."""
+        current_index = self.get_fader_index_from_cc(cc, device_id)
+        fader_number = cc - self.FIRST_FADER_CONTROL + 1
+
+        self._link_in_progress = True  # Drops the messages the fader keeps sending while the prompt is open
+        try:
+            executor_id = input_prompts.ask_number(
+                f"Fader {fader_number} of controller {device_id}: please input the id of the executor",
+                minimum=1, default=None if current_index is None else current_index + 1,
+                parent=self.gui_instance,
+            )
+        finally:
+            self._link_in_progress = False
+        if executor_id is None:
+            return
+
+        # Same convention as the pads: the user types the executor id, the dot2 counts from 0
+        self.append_cc_to_json(cc=cc, note=executor_id - 1, device_id=device_id)
         self.load_json()
         self.initiate_last_value_dictionary()
 
@@ -906,6 +939,8 @@ class MidiController:
 
     def fader_button_handler(self, cc, device_id, pressed):
         executor_index = self.get_fader_index_from_cc(cc, device_id)
+        if executor_index is None:
+            return  # Fader not bound to an executor yet
         self.dot2_ws.send_playback_click(executor_index=executor_index, button_id=1, pressed=pressed)
 
     def note_loop(self, message, device_id):
@@ -919,6 +954,9 @@ class MidiController:
             return
 
         if message.type == "control_change":
+            if self.config_mode:
+                self._config_mode_fader_touched(message.control, device_id)
+                return
 
             cc_note_dict = (
                 self.cc_fader_index_dictionary_device1 if device_id == 1
