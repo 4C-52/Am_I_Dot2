@@ -433,6 +433,8 @@ class MidiController:
 
     def toggle_config_mode(self):
         self.config_mode = not self.config_mode
+        # Keeps the Tools > Config Mode checkmark right when F2 is used (setChecked does not re-trigger the action)
+        self.gui_instance.menu["tools"]["config_mode"].setChecked(bool(self.config_mode))
 
         if self.config_mode:
             self.flash_color(2, 5)

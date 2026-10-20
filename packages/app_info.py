@@ -23,8 +23,8 @@ GITHUB_LATEST_RELEASE_API_URL = (
 )
 
 # Help menu links. Each menu action has its own constant so they can be changed independently.
-CONFIGURING_AM_I_DOT2_URL = f"{GITHUB_PAGE_URL}/blob/master/README.md"
-MANAGE_PROFILES_URL = f"{GITHUB_PAGE_URL}/blob/master/README.md"
+CONFIGURING_AM_I_DOT2_URL = f"{GITHUB_PAGE_URL}/blob/master/docs/CONFIGURING_AM_I_DOT2.md"
+MANAGE_PROFILES_URL = f"{GITHUB_PAGE_URL}/blob/master/docs/MANAGING_PROFILES.md"
 
 # Folder containing main.py, whatever the folder the app is launched from.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
