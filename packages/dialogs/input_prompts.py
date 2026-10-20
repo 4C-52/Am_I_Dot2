@@ -30,10 +30,16 @@ def show_info(message, title=DEFAULT_TITLE, parent=None):
     QMessageBox.information(parent, title, message)
 
 
-def confirm_destructive_action(warning, title=DEFAULT_TITLE, parent=None):
+def show_warning(message, title=DEFAULT_TITLE, parent=None):
+    """For mistakes the user can fix themselves (no "contact the developer" hint, unlike show_error)."""
+    QMessageBox.warning(parent, title, message)
+
+
+def confirm_destructive_action(warning, title=DEFAULT_TITLE, parent=None,
+                               final_prompt="Your current file will be LOST."):
     """
-    Two-step confirmation for actions that overwrite data: a Yes/No question,
-    then the user has to type CONFIRM. Returns True only if both steps pass.
+    Two-step confirmation for actions that overwrite or delete data: a Yes/No
+    question, then the user has to type CONFIRM. Returns True only if both steps pass.
     """
     answer = QMessageBox.warning(
         parent, title, warning,
@@ -43,6 +49,5 @@ def confirm_destructive_action(warning, title=DEFAULT_TITLE, parent=None):
     if answer != QMessageBox.StandardButton.Yes:
         return False
 
-    typed = ask_text(f'Type "{CONFIRM_WORD}" to proceed. Your current file will be LOST.',
-                     title=title, parent=parent)
+    typed = ask_text(f'Type "{CONFIRM_WORD}" to proceed. {final_prompt}', title=title, parent=parent)
     return typed == CONFIRM_WORD

@@ -213,11 +213,25 @@ class MainApp(QMainWindow):
         self.resize_to_smallest_size()
 
     def wing_shown(self, wing_id):
-        return self.ui.wing_1.isVisible() if wing_id == 1 else self.ui.wing_2.isVisible()
+        # isHidden() and not isVisible(): isVisible() is also False while the whole window is minimized
+        return not (self.ui.wing_1 if wing_id == 1 else self.ui.wing_2).isHidden()
 
-    #TODO
     def resize_to_smallest_size(self):
-        pass
+        """
+        Shrinks the window around the wings that are still shown. Deferred to the next
+        event loop turn because Qt only recalculates the layout after hide()/show() returns;
+        resizing right away would still measure the old layout.
+        """
+        QTimer.singleShot(0, self._shrink_to_content)
+
+    def _shrink_to_content(self):
+        if self.isMaximized() or self.isFullScreen():
+            self.showNormal()  # A maximized window ignores resize()
+        # Both layouts must be recalculated: the window's own layout is what sets the window's
+        # minimum size, and resize() never goes below it (it would stay at the two-wing width).
+        self.centralWidget().layout().activate()
+        self.layout().activate()
+        self.resize(self.minimumSizeHint())
 
     def toggle_check_menu_button(self, menu_id, button_id):
         menu_action = self.menu[menu_id][button_id]
@@ -333,12 +347,22 @@ class MainApp(QMainWindow):
         self.load_profile(path)
 
     def open_profiles_window(self):
-        """Settings > Profiles: choose the profiles folder and optionally switch to one of its profiles."""
+        """
+        Settings > Profiles: choose the profiles folder, create/rename/delete profiles,
+        and optionally switch to one of them.
+        """
         dialog = ProfilesDialog(self.settings.profiles_folder,
-                                current_profile_path=self.controller.DATA_FILEPATH, parent=self)
+                                current_profile_path=self.controller.DATA_FILEPATH,
+                                base_profile=self._read_current_profile_or_none(), parent=self)
         accepted = bool(dialog.exec())
         folder, selected_profile = dialog.selected_folder, dialog.selected_profile_path
+        loaded_profile_path = dialog.current_profile_path
         dialog.deleteLater()
+
+        # Renames happen on disk right away, so follow them even if the dialog was cancelled
+        if not profile_manager.is_same_file(loaded_profile_path, self.controller.DATA_FILEPATH):
+            self.controller.DATA_FILEPATH = loaded_profile_path
+            self._remember_current_profile()
         if not accepted:
             return
 
@@ -346,6 +370,13 @@ class MainApp(QMainWindow):
         self._save_settings()
         if selected_profile and not profile_manager.is_same_file(selected_profile, self.controller.DATA_FILEPATH):
             self.load_profile(selected_profile)
+
+    def _read_current_profile_or_none(self):
+        """Current profile data, or None if its file cannot be read (new profiles then use default settings)."""
+        try:
+            return self.controller.read_current_profile()
+        except (OSError, ValueError):
+            return None
 
     # =================================================================
     #                          Preferences

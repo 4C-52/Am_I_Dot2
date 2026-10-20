@@ -11,11 +11,18 @@ import copy
 import json
 import os
 
+from PySide6.QtCore import QFile
+
 PROFILE_EXTENSION = ".json"
 PROFILE_FILE_FILTER = "Am I Dot2 profile (*.json)"
 DEFAULT_PROFILE_FILENAME = "default.json"
 NEW_PROFILE_FILENAME = "new_profile.json"
 MAX_PROBLEMS_SHOWN = 8
+
+# Characters and names Windows refuses in file names (also refused elsewhere so profiles stay portable)
+INVALID_NAME_CHARACTERS = '<>:"/\\|?*'
+RESERVED_WINDOWS_NAMES = {"CON", "PRN", "AUX", "NUL",
+                          *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 
 # Top-level fields of a profile and the python type(s) each one must have.
 TOP_LEVEL_FIELDS = {
@@ -229,6 +236,70 @@ def is_same_file(path_a, path_b):
     if not path_a or not path_b:
         return False
     return os.path.normcase(os.path.abspath(path_a)) == os.path.normcase(os.path.abspath(path_b))
+
+
+def profile_path_for_name(folder, name):
+    """
+    folder/<name>.json for a name typed by the user ("My show" or "My show.json").
+    Raises ProfileError when the name cannot be used as a file name.
+    """
+    name = name.strip()
+    if name.lower().endswith(PROFILE_EXTENSION):
+        name = name[:-len(PROFILE_EXTENSION)].strip()
+
+    if not name:
+        raise ProfileError("The profile name cannot be empty.")
+    invalid = sorted({character for character in name if character in INVALID_NAME_CHARACTERS or ord(character) < 32})
+    if invalid:
+        raise ProfileError("The profile name cannot contain these characters: " + " ".join(invalid))
+    if name.endswith("."):
+        raise ProfileError("The profile name cannot end with a dot.")
+    if name.upper() in RESERVED_WINDOWS_NAMES:
+        raise ProfileError(f'"{name}" is reserved by Windows, please choose another name.')
+    return os.path.join(folder, name + PROFILE_EXTENSION)
+
+
+# =================================================================
+#                     Create / rename / delete
+# =================================================================
+
+def create_named_profile(folder, name, base_profile=None):
+    """Creates a blank profile called name in folder and returns its path. Never overwrites a file."""
+    path = profile_path_for_name(folder, name)
+    if os.path.exists(path):
+        raise ProfileError(f'A profile called "{profile_display_name(path)}" already exists in this folder.')
+    try:
+        create_blank_profile(path, base_profile)
+    except OSError as error:
+        raise ProfileError(f"The profile could not be created:\n{error}") from error
+    return path
+
+
+def rename_profile(path, new_name):
+    """Renames the profile file (it stays in its folder) and returns its new path. Never overwrites a file."""
+    new_path = profile_path_for_name(os.path.dirname(path), new_name)
+    # A file with that name blocks the rename, unless it is this very file (case-only rename on Windows)
+    if os.path.exists(new_path) and not is_same_file(path, new_path):
+        raise ProfileError(f'A profile called "{profile_display_name(new_path)}" already exists in this folder.')
+    try:
+        os.rename(path, new_path)
+    except OSError as error:
+        raise ProfileError(f"The profile could not be renamed:\n{error}") from error
+    return new_path
+
+
+def delete_profile(path):
+    """
+    Moves the profile to the recycle bin, or deletes it for good when the
+    system has no recycle bin. Returns True when it went to the recycle bin.
+    """
+    if QFile.moveToTrash(path):
+        return True
+    try:
+        os.remove(path)
+    except OSError as error:
+        raise ProfileError(f"The profile could not be deleted:\n{error}") from error
+    return False
 
 
 def _format_problems(problems):
