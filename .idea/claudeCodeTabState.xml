@@ -10,8 +10,8 @@
               <option name="provider" value="claude" />
               <option name="sessionId" value="a55c555f-ae5c-4a01-aa83-1e884940f251" />
               <option name="cwd" value="$PROJECT_DIR$" />
-              <option name="model" value="claude-fable-5-1[1m]" />
-              <option name="permissionMode" value="default" />
+              <option name="model" value="claude-opus-5-5[1m]" />
+              <option name="permissionMode" value="acceptEdits" />
             </TabSessionState>
           </value>
         </entry>

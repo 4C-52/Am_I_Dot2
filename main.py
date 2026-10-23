@@ -87,6 +87,7 @@ class MainApp(QMainWindow):
 
         self.menu_actions = self._build_menu_actions()
         self.assign_callbacks()
+        self.resize_to_maximized()
 
         self.midi_timer = QTimer()
         self.midi_timer.timeout.connect(self.controller.poll)
@@ -223,6 +224,15 @@ class MainApp(QMainWindow):
         resizing right away would still measure the old layout.
         """
         QTimer.singleShot(0, self._shrink_to_content)
+
+    def resize_to_maximized(self):
+        """
+        Shrinks/Expands the window to fill the screen. Stills shows the taskbar and title bar
+        """
+        QTimer.singleShot(0, self._set_window_maximized)
+
+    def _set_window_maximized(self):
+        self.showMaximized()
 
     def _shrink_to_content(self):
         if self.isMaximized() or self.isFullScreen():
