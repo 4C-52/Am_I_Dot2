@@ -4,8 +4,8 @@ import shutil
 import sys
 from functools import partial
 
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QApplication, QFileDialog, QGridLayout, QMainWindow
 
 from packages import profile_manager
 from packages.app_info import (APP_NAME, BUNDLED_PROFILE_PATH, CONFIGURING_AM_I_DOT2_URL,
@@ -23,6 +23,7 @@ from packages.utils import readable_text_color
 from packages.version_checker import VersionChecker, show_update_dialog
 from packages.web_socket_handler import STATUS_CONNECTED, STATUS_CONNECTING
 
+RIGHT_COLUMN_NOTES = (112, 113, 114, 115, 116, 117, 118, 119, 122)  # Round buttons right of the pad grid
 POLLING_INTERVAL = 10  # Interval between midi polls in milliseconds
 BLANK_PAD_COLOR = "#FFFFFF"  # Pads behind the color palette
 DOT2_CONNECTION_TIMEOUT_MS = 5000  # How long to wait for the console before offering to retry
@@ -79,6 +80,8 @@ class MainApp(QMainWindow):
             }
         }
 
+        self._let_faders_use_spare_height()
+
         # Settings live outside the app folder (see AppSettings) and tell us which profile to open
         self.settings = settings if settings is not None else AppSettings().load()
 
@@ -124,6 +127,33 @@ class MainApp(QMainWindow):
             text_color = readable_text_color(hex_color)
             button.setStyleSheet(f"QPushButton {{ background-color: {hex_color}; color: {text_color}; }}")
         cls._repolish(button)
+
+    def _let_faders_use_spare_height(self):
+        """
+        The round buttons right of each pad grid sit in small fixed-size layouts (28 px),
+        in rows of 44 px pads. Qt then caps the whole grid at its preferred height, so the
+        faders could never use spare vertical space. Centering those cells removes the cap
+        without moving the buttons.
+
+        Done here rather than in the .ui file: Qt Designer cannot set the alignment of a
+        cell holding a layout, and regenerating the UI would silently drop it.
+        """
+        for buttons in (self.wing1_buttons, self.wing2_buttons):
+            for note in RIGHT_COLUMN_NOTES:
+                cell = self._grid_cell_containing(buttons[note])
+                if cell is not None:
+                    cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.centralWidget().layout().invalidate()
+
+    @staticmethod
+    def _grid_cell_containing(widget):
+        """Item of the parent's grid layouts that holds the small layout wrapping widget, or None."""
+        for grid in widget.parentWidget().findChildren(QGridLayout):
+            for index in range(grid.count()):
+                inner = grid.itemAt(index).layout()
+                if inner is not None and inner.indexOf(widget) >= 0:
+                    return grid.itemAt(index)
+        return None
 
     @staticmethod
     def _repolish(widget):
@@ -232,7 +262,8 @@ class MainApp(QMainWindow):
         # minimum size, and resize() never goes below it (it would stay at the two-wing width).
         self.centralWidget().layout().activate()
         self.layout().activate()
-        self.resize(self.minimumSizeHint())
+        # Only the width shrinks: the faders can now get smaller, and hiding a wing must not squash them
+        self.resize(self.minimumSizeHint().width(), max(self.height(), self.minimumSizeHint().height()))
 
     def toggle_check_menu_button(self, menu_id, button_id):
         menu_action = self.menu[menu_id][button_id]

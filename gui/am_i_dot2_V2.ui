@@ -1643,10 +1643,16 @@
            </item>
            <item row="10" column="5">
             <widget class="QFrame" name="frame_fader52_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -1684,7 +1690,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader52_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -1692,7 +1698,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -1781,10 +1787,16 @@
            </item>
            <item row="10" column="6">
             <widget class="QFrame" name="frame_fader53_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -1822,7 +1834,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader53_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -1830,7 +1842,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -1894,10 +1906,16 @@
            </item>
            <item row="10" column="2">
             <widget class="QFrame" name="frame_fader49_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -1942,7 +1960,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader49_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -1950,7 +1968,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -2173,10 +2191,16 @@
            </item>
            <item row="10" column="1">
             <widget class="QFrame" name="frame_fader48_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -2214,7 +2238,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader48_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -2222,7 +2246,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -2681,10 +2705,16 @@
            </item>
            <item row="10" column="4">
             <widget class="QFrame" name="frame_fader51_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -2722,7 +2752,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader51_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -2730,7 +2760,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -2794,10 +2824,16 @@
            </item>
            <item row="10" column="3">
             <widget class="QFrame" name="frame_fader50_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -2842,7 +2878,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader50_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -2850,7 +2886,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -3068,10 +3104,16 @@
            </item>
            <item row="10" column="7">
             <widget class="QFrame" name="frame_fader54_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -3116,7 +3158,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader54_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -3124,7 +3166,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -3181,10 +3223,16 @@
            </item>
            <item row="10" column="8">
             <widget class="QFrame" name="frame_fader55_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -3222,7 +3270,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader55_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -3230,7 +3278,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -3294,10 +3342,16 @@
            </item>
            <item row="10" column="10">
             <widget class="QFrame" name="frame_fader56_4">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -3335,7 +3389,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader56_4">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -3343,7 +3397,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -3902,10 +3956,16 @@
            </item>
            <item row="10" column="4">
             <widget class="QFrame" name="frame_fader51_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -3943,7 +4003,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader51_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -3951,7 +4011,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -4196,10 +4256,16 @@
            </item>
            <item row="10" column="10">
             <widget class="QFrame" name="frame_fader56_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -4237,7 +4303,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader56_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -4245,7 +4311,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -4550,10 +4616,16 @@
            </item>
            <item row="10" column="5">
             <widget class="QFrame" name="frame_fader52_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -4591,7 +4663,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader52_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -4599,7 +4671,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -5425,10 +5497,16 @@
            </item>
            <item row="10" column="7">
             <widget class="QFrame" name="frame_fader54_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -5473,7 +5551,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader54_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -5481,7 +5559,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -5588,10 +5666,16 @@
            </item>
            <item row="10" column="6">
             <widget class="QFrame" name="frame_fader53_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -5629,7 +5713,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader53_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -5637,7 +5721,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -5766,10 +5850,16 @@
            </item>
            <item row="10" column="2">
             <widget class="QFrame" name="frame_fader49_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -5814,7 +5904,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader49_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -5822,7 +5912,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -6124,10 +6214,16 @@
            </item>
            <item row="10" column="8">
             <widget class="QFrame" name="frame_fader55_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -6165,7 +6261,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader55_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -6173,7 +6269,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -6328,10 +6424,16 @@
            </item>
            <item row="10" column="1">
             <widget class="QFrame" name="frame_fader48_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -6369,7 +6471,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader48_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -6377,7 +6479,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
@@ -6516,10 +6618,16 @@
            </item>
            <item row="10" column="3">
             <widget class="QFrame" name="frame_fader50_6">
-             <property name="minimumSize">
+             <property name="sizePolicy">
+ <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+  <horstretch>0</horstretch>
+  <verstretch>0</verstretch>
+ </sizepolicy>
+</property>
+<property name="minimumSize">
               <size>
                <width>88</width>
-               <height>250</height>
+               <height>100</height>
               </size>
              </property>
              <property name="maximumSize">
@@ -6564,7 +6672,7 @@
                   <item row="0" column="0">
                    <widget class="QSlider" name="fader50_6">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -6572,7 +6680,7 @@
                     <property name="minimumSize">
                      <size>
                       <width>0</width>
-                      <height>190</height>
+                      <height>60</height>
                      </size>
                     </property>
                     <property name="maximumSize">
