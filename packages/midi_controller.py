@@ -672,15 +672,9 @@ class MidiController:
             if input_name in available_inputs and output_name in available_outputs:
                 self._open_device_ports(device_id, input_name, output_name)
             else:
+                # Every port is offered to both controllers, including the one controller 1 uses
                 self.choose_ports_for_device(device_id, parent=parent, available_inputs=available_inputs,
                                              available_outputs=available_outputs, persist=False)
-
-            # A port taken by the first controller is not offered to the second one
-            opened_input, opened_output = self.get_open_port_names(device_id)
-            if opened_input in available_inputs:
-                available_inputs.remove(opened_input)
-            if opened_output in available_outputs:
-                available_outputs.remove(opened_output)
 
         self._persist_default_ports()
         print(
