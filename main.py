@@ -19,10 +19,12 @@ from packages.gui_main_window import Ui_MainWindow
 from packages.midi_controller import MidiController
 from packages.profile_manager import (DEFAULT_PROFILE_FILENAME, NEW_PROFILE_FILENAME,
                                       PROFILE_FILE_FILTER, ProfileError, profile_display_name)
+from packages.utils import readable_text_color
 from packages.version_checker import VersionChecker, show_update_dialog
 from packages.web_socket_handler import STATUS_CONNECTED, STATUS_CONNECTING
 
 POLLING_INTERVAL = 10  # Interval between midi polls in milliseconds
+BLANK_PAD_COLOR = "#FFFFFF"  # Pads behind the color palette
 DOT2_CONNECTION_TIMEOUT_MS = 5000  # How long to wait for the console before offering to retry
 DOT2_CONNECTION_POLL_MS = 250  # How often the connection progress is checked
 STATUS_MESSAGE_MS = 5000  # How long temporary messages stay in the status bar
@@ -109,22 +111,19 @@ class MainApp(QMainWindow):
     #                          GUI helpers
     # =================================================================
 
-    @staticmethod
-    def invert_hex_color(hex_color: str) -> str:
+    @classmethod
+    def _apply_button_background(cls, button, hex_color):
         """
-        Takes a hex color string (e.g. "#RRGGBB" or "RRGGBB")
-        and returns the inverted hex color.
+        Paints the pad with hex_color and picks black or white text, whichever reads
+        best on it. None goes back to the default look. The QPushButton selector keeps
+        the style off the pad's tooltip.
         """
-        hex_color = hex_color.lstrip("#")
-
-        if len(hex_color) != 6:
-            raise ValueError(f"Invalid hex color: {hex_color}")
-
-        r = 255 - int(hex_color[0:2], 16)
-        g = 255 - int(hex_color[2:4], 16)
-        b = 255 - int(hex_color[4:6], 16)
-
-        return f"#{r:02X}{g:02X}{b:02X}"
+        if hex_color is None:
+            button.setStyleSheet("")
+        else:
+            text_color = readable_text_color(hex_color)
+            button.setStyleSheet(f"QPushButton {{ background-color: {hex_color}; color: {text_color}; }}")
+        cls._repolish(button)
 
     @staticmethod
     def _repolish(widget):
@@ -157,12 +156,9 @@ class MainApp(QMainWindow):
 
     def set_button_label(self, button_id, device_id, short_label, long_label):
         button = self.get_button_instance(button_id, device_id)
+        # The text color is set together with the background, see _apply_button_background()
         button.setText(short_label)
         button.setToolTip(long_label)
-        bg_color = self.get_button_background_color(button)
-        if bg_color is not None:
-            inverted_color = self.invert_hex_color(bg_color)
-            button.setStyleSheet(f"color: {inverted_color}; background-color: {bg_color};")
         if button.toolTipDuration() != 0:
             button.setToolTipDuration(0)
 
@@ -170,22 +166,18 @@ class MainApp(QMainWindow):
         if hex_color is None:
             return
         button = self.get_button_instance(button_id, device_id)
-        button.setStyleSheet(f"background-color: {hex_color};")
         button.setProperty("bg_color", hex_color) # to easily get the color later on
-        self._repolish(button)
+        self._apply_button_background(button, hex_color)
 
     def set_temp_button_color(self, button_id, device_id, hex_color):
         if hex_color is None:
             return
         button = self.get_button_instance(button_id, device_id)
-        button.setStyleSheet(f"background-color: {hex_color};")
-        self._repolish(button)
+        self._apply_button_background(button, hex_color)
 
     def restore_permanent_button_color(self, button_id, device_id):
         button = self.get_button_instance(button_id, device_id)
-        hex_color = button.property("bg_color")
-        button.setStyleSheet(f"background-color: {hex_color};")
-        self._repolish(button)
+        self._apply_button_background(button, button.property("bg_color"))
 
     def refresh_gui(self):
         for _, button in self._all_buttons():
@@ -197,8 +189,7 @@ class MainApp(QMainWindow):
             button.setText(str(note))
             button.setToolTip("")
             button.setProperty("bg_color", None)
-            button.setStyleSheet("")
-            self._repolish(button)
+            self._apply_button_background(button, None)
 
     def toggle_view_wing(self, wing_id):
         if wing_id == 1:
@@ -251,13 +242,14 @@ class MainApp(QMainWindow):
 
     def set_blank_gui(self):
         for _, button in self._all_buttons():
-            button.setStyleSheet('background-color: "FFFFFF";')
-            self._repolish(button)
+            self._apply_button_background(button, BLANK_PAD_COLOR)
 
     def restore_all_permanent_gui_button_colors(self):
-        for button in range(len(self.wing1_buttons)-1):
-            self.restore_permanent_button_color(button, device_id=1)
-            self.restore_permanent_button_color(button, device_id=2)
+        # Pad numbers are not contiguous (0-63, then 100-107, 112-119, 122), so loop over the real ones
+        for note in self.wing1_buttons:
+            self.restore_permanent_button_color(note, device_id=1)
+        for note in self.wing2_buttons:
+            self.restore_permanent_button_color(note, device_id=2)
 
     # =================================================================
     #                          Profiles
