@@ -139,7 +139,7 @@ class Ui_MainWindow(object):
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.button36_4.sizePolicy().hasHeightForWidth())
         self.button36_4.setSizePolicy(sizePolicy1)
-        self.button36_4.setMinimumSize(QSize(88, 44))
+        self.button36_4.setMinimumSize(QSize(44, 44))
         self.button36_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button36_4, 3, 5, 1, 1)
@@ -148,7 +148,7 @@ class Ui_MainWindow(object):
         self.button61_4.setObjectName(u"button61_4")
         sizePolicy1.setHeightForWidth(self.button61_4.sizePolicy().hasHeightForWidth())
         self.button61_4.setSizePolicy(sizePolicy1)
-        self.button61_4.setMinimumSize(QSize(88, 44))
+        self.button61_4.setMinimumSize(QSize(44, 44))
         self.button61_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button61_4, 0, 6, 1, 1)
@@ -157,7 +157,7 @@ class Ui_MainWindow(object):
         self.button45_4.setObjectName(u"button45_4")
         sizePolicy1.setHeightForWidth(self.button45_4.sizePolicy().hasHeightForWidth())
         self.button45_4.setSizePolicy(sizePolicy1)
-        self.button45_4.setMinimumSize(QSize(88, 44))
+        self.button45_4.setMinimumSize(QSize(44, 44))
         self.button45_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button45_4, 2, 6, 1, 1)
@@ -166,7 +166,7 @@ class Ui_MainWindow(object):
         self.button44_4.setObjectName(u"button44_4")
         sizePolicy1.setHeightForWidth(self.button44_4.sizePolicy().hasHeightForWidth())
         self.button44_4.setSizePolicy(sizePolicy1)
-        self.button44_4.setMinimumSize(QSize(88, 44))
+        self.button44_4.setMinimumSize(QSize(44, 44))
         self.button44_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button44_4, 2, 5, 1, 1)
@@ -175,7 +175,7 @@ class Ui_MainWindow(object):
         self.button8_4.setObjectName(u"button8_4")
         sizePolicy1.setHeightForWidth(self.button8_4.sizePolicy().hasHeightForWidth())
         self.button8_4.setSizePolicy(sizePolicy1)
-        self.button8_4.setMinimumSize(QSize(88, 44))
+        self.button8_4.setMinimumSize(QSize(44, 44))
         self.button8_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button8_4, 6, 1, 1, 1)
@@ -203,7 +203,7 @@ class Ui_MainWindow(object):
         self.button16_4.setObjectName(u"button16_4")
         sizePolicy1.setHeightForWidth(self.button16_4.sizePolicy().hasHeightForWidth())
         self.button16_4.setSizePolicy(sizePolicy1)
-        self.button16_4.setMinimumSize(QSize(88, 44))
+        self.button16_4.setMinimumSize(QSize(44, 44))
         self.button16_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button16_4, 5, 1, 1, 1)
@@ -212,7 +212,7 @@ class Ui_MainWindow(object):
         self.button12_4.setObjectName(u"button12_4")
         sizePolicy1.setHeightForWidth(self.button12_4.sizePolicy().hasHeightForWidth())
         self.button12_4.setSizePolicy(sizePolicy1)
-        self.button12_4.setMinimumSize(QSize(88, 44))
+        self.button12_4.setMinimumSize(QSize(44, 44))
         self.button12_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button12_4, 6, 5, 1, 1)
@@ -221,7 +221,7 @@ class Ui_MainWindow(object):
         self.button10_4.setObjectName(u"button10_4")
         sizePolicy1.setHeightForWidth(self.button10_4.sizePolicy().hasHeightForWidth())
         self.button10_4.setSizePolicy(sizePolicy1)
-        self.button10_4.setMinimumSize(QSize(88, 44))
+        self.button10_4.setMinimumSize(QSize(44, 44))
         self.button10_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button10_4, 6, 3, 1, 1)
@@ -230,7 +230,7 @@ class Ui_MainWindow(object):
         self.button49_4.setObjectName(u"button49_4")
         sizePolicy1.setHeightForWidth(self.button49_4.sizePolicy().hasHeightForWidth())
         self.button49_4.setSizePolicy(sizePolicy1)
-        self.button49_4.setMinimumSize(QSize(88, 44))
+        self.button49_4.setMinimumSize(QSize(44, 44))
         self.button49_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button49_4, 1, 2, 1, 1)
@@ -239,7 +239,7 @@ class Ui_MainWindow(object):
         self.button30_4.setObjectName(u"button30_4")
         sizePolicy1.setHeightForWidth(self.button30_4.sizePolicy().hasHeightForWidth())
         self.button30_4.setSizePolicy(sizePolicy1)
-        self.button30_4.setMinimumSize(QSize(88, 44))
+        self.button30_4.setMinimumSize(QSize(44, 44))
         self.button30_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button30_4, 4, 7, 1, 1)
@@ -281,7 +281,7 @@ class Ui_MainWindow(object):
         self.button25_4.setObjectName(u"button25_4")
         sizePolicy1.setHeightForWidth(self.button25_4.sizePolicy().hasHeightForWidth())
         self.button25_4.setSizePolicy(sizePolicy1)
-        self.button25_4.setMinimumSize(QSize(88, 44))
+        self.button25_4.setMinimumSize(QSize(44, 44))
         self.button25_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button25_4, 4, 2, 1, 1)
@@ -290,7 +290,7 @@ class Ui_MainWindow(object):
         self.button63_4.setObjectName(u"button63_4")
         sizePolicy1.setHeightForWidth(self.button63_4.sizePolicy().hasHeightForWidth())
         self.button63_4.setSizePolicy(sizePolicy1)
-        self.button63_4.setMinimumSize(QSize(88, 44))
+        self.button63_4.setMinimumSize(QSize(44, 44))
         self.button63_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button63_4, 0, 8, 1, 1)
@@ -316,7 +316,7 @@ class Ui_MainWindow(object):
         self.button48_4.setObjectName(u"button48_4")
         sizePolicy1.setHeightForWidth(self.button48_4.sizePolicy().hasHeightForWidth())
         self.button48_4.setSizePolicy(sizePolicy1)
-        self.button48_4.setMinimumSize(QSize(88, 44))
+        self.button48_4.setMinimumSize(QSize(44, 44))
         self.button48_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button48_4, 1, 1, 1, 1)
@@ -325,7 +325,7 @@ class Ui_MainWindow(object):
         self.button31_4.setObjectName(u"button31_4")
         sizePolicy1.setHeightForWidth(self.button31_4.sizePolicy().hasHeightForWidth())
         self.button31_4.setSizePolicy(sizePolicy1)
-        self.button31_4.setMinimumSize(QSize(88, 44))
+        self.button31_4.setMinimumSize(QSize(44, 44))
         self.button31_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button31_4, 4, 8, 1, 1)
@@ -334,7 +334,7 @@ class Ui_MainWindow(object):
         self.button7_4.setObjectName(u"button7_4")
         sizePolicy1.setHeightForWidth(self.button7_4.sizePolicy().hasHeightForWidth())
         self.button7_4.setSizePolicy(sizePolicy1)
-        self.button7_4.setMinimumSize(QSize(88, 44))
+        self.button7_4.setMinimumSize(QSize(44, 44))
         self.button7_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button7_4, 7, 8, 1, 1)
@@ -343,7 +343,7 @@ class Ui_MainWindow(object):
         self.button4_4.setObjectName(u"button4_4")
         sizePolicy1.setHeightForWidth(self.button4_4.sizePolicy().hasHeightForWidth())
         self.button4_4.setSizePolicy(sizePolicy1)
-        self.button4_4.setMinimumSize(QSize(88, 44))
+        self.button4_4.setMinimumSize(QSize(44, 44))
         self.button4_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button4_4, 7, 5, 1, 1)
@@ -352,7 +352,7 @@ class Ui_MainWindow(object):
         self.button35_4.setObjectName(u"button35_4")
         sizePolicy1.setHeightForWidth(self.button35_4.sizePolicy().hasHeightForWidth())
         self.button35_4.setSizePolicy(sizePolicy1)
-        self.button35_4.setMinimumSize(QSize(88, 44))
+        self.button35_4.setMinimumSize(QSize(44, 44))
         self.button35_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button35_4, 3, 4, 1, 1)
@@ -361,7 +361,7 @@ class Ui_MainWindow(object):
         self.button39_4.setObjectName(u"button39_4")
         sizePolicy1.setHeightForWidth(self.button39_4.sizePolicy().hasHeightForWidth())
         self.button39_4.setSizePolicy(sizePolicy1)
-        self.button39_4.setMinimumSize(QSize(88, 44))
+        self.button39_4.setMinimumSize(QSize(44, 44))
         self.button39_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button39_4, 3, 8, 1, 1)
@@ -370,7 +370,7 @@ class Ui_MainWindow(object):
         self.button24_4.setObjectName(u"button24_4")
         sizePolicy1.setHeightForWidth(self.button24_4.sizePolicy().hasHeightForWidth())
         self.button24_4.setSizePolicy(sizePolicy1)
-        self.button24_4.setMinimumSize(QSize(88, 44))
+        self.button24_4.setMinimumSize(QSize(44, 44))
         self.button24_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button24_4, 4, 1, 1, 1)
@@ -379,7 +379,7 @@ class Ui_MainWindow(object):
         self.button3_4.setObjectName(u"button3_4")
         sizePolicy1.setHeightForWidth(self.button3_4.sizePolicy().hasHeightForWidth())
         self.button3_4.setSizePolicy(sizePolicy1)
-        self.button3_4.setMinimumSize(QSize(88, 44))
+        self.button3_4.setMinimumSize(QSize(44, 44))
         self.button3_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button3_4, 7, 4, 1, 1)
@@ -388,7 +388,7 @@ class Ui_MainWindow(object):
         self.button46_4.setObjectName(u"button46_4")
         sizePolicy1.setHeightForWidth(self.button46_4.sizePolicy().hasHeightForWidth())
         self.button46_4.setSizePolicy(sizePolicy1)
-        self.button46_4.setMinimumSize(QSize(88, 44))
+        self.button46_4.setMinimumSize(QSize(44, 44))
         self.button46_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button46_4, 2, 7, 1, 1)
@@ -397,7 +397,7 @@ class Ui_MainWindow(object):
         self.button40_4.setObjectName(u"button40_4")
         sizePolicy1.setHeightForWidth(self.button40_4.sizePolicy().hasHeightForWidth())
         self.button40_4.setSizePolicy(sizePolicy1)
-        self.button40_4.setMinimumSize(QSize(88, 44))
+        self.button40_4.setMinimumSize(QSize(44, 44))
         self.button40_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button40_4, 2, 1, 1, 1)
@@ -406,7 +406,7 @@ class Ui_MainWindow(object):
         self.button55_4.setObjectName(u"button55_4")
         sizePolicy1.setHeightForWidth(self.button55_4.sizePolicy().hasHeightForWidth())
         self.button55_4.setSizePolicy(sizePolicy1)
-        self.button55_4.setMinimumSize(QSize(88, 44))
+        self.button55_4.setMinimumSize(QSize(44, 44))
         self.button55_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button55_4, 1, 8, 1, 1)
@@ -415,7 +415,7 @@ class Ui_MainWindow(object):
         self.button9_4.setObjectName(u"button9_4")
         sizePolicy1.setHeightForWidth(self.button9_4.sizePolicy().hasHeightForWidth())
         self.button9_4.setSizePolicy(sizePolicy1)
-        self.button9_4.setMinimumSize(QSize(88, 44))
+        self.button9_4.setMinimumSize(QSize(44, 44))
         self.button9_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button9_4, 6, 2, 1, 1)
@@ -424,7 +424,7 @@ class Ui_MainWindow(object):
         self.button5_4.setObjectName(u"button5_4")
         sizePolicy1.setHeightForWidth(self.button5_4.sizePolicy().hasHeightForWidth())
         self.button5_4.setSizePolicy(sizePolicy1)
-        self.button5_4.setMinimumSize(QSize(88, 44))
+        self.button5_4.setMinimumSize(QSize(44, 44))
         self.button5_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button5_4, 7, 6, 1, 1)
@@ -433,7 +433,7 @@ class Ui_MainWindow(object):
         self.button38_4.setObjectName(u"button38_4")
         sizePolicy1.setHeightForWidth(self.button38_4.sizePolicy().hasHeightForWidth())
         self.button38_4.setSizePolicy(sizePolicy1)
-        self.button38_4.setMinimumSize(QSize(88, 44))
+        self.button38_4.setMinimumSize(QSize(44, 44))
         self.button38_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button38_4, 3, 7, 1, 1)
@@ -478,7 +478,7 @@ class Ui_MainWindow(object):
         self.button52_4.setObjectName(u"button52_4")
         sizePolicy1.setHeightForWidth(self.button52_4.sizePolicy().hasHeightForWidth())
         self.button52_4.setSizePolicy(sizePolicy1)
-        self.button52_4.setMinimumSize(QSize(88, 44))
+        self.button52_4.setMinimumSize(QSize(44, 44))
         self.button52_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button52_4, 1, 5, 1, 1)
@@ -487,7 +487,7 @@ class Ui_MainWindow(object):
         self.button51_4.setObjectName(u"button51_4")
         sizePolicy1.setHeightForWidth(self.button51_4.sizePolicy().hasHeightForWidth())
         self.button51_4.setSizePolicy(sizePolicy1)
-        self.button51_4.setMinimumSize(QSize(88, 44))
+        self.button51_4.setMinimumSize(QSize(44, 44))
         self.button51_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button51_4, 1, 4, 1, 1)
@@ -496,7 +496,7 @@ class Ui_MainWindow(object):
         self.button60_4.setObjectName(u"button60_4")
         sizePolicy1.setHeightForWidth(self.button60_4.sizePolicy().hasHeightForWidth())
         self.button60_4.setSizePolicy(sizePolicy1)
-        self.button60_4.setMinimumSize(QSize(88, 44))
+        self.button60_4.setMinimumSize(QSize(44, 44))
         self.button60_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button60_4, 0, 5, 1, 1)
@@ -505,7 +505,7 @@ class Ui_MainWindow(object):
         self.button13_4.setObjectName(u"button13_4")
         sizePolicy1.setHeightForWidth(self.button13_4.sizePolicy().hasHeightForWidth())
         self.button13_4.setSizePolicy(sizePolicy1)
-        self.button13_4.setMinimumSize(QSize(88, 44))
+        self.button13_4.setMinimumSize(QSize(44, 44))
         self.button13_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button13_4, 6, 6, 1, 1)
@@ -514,7 +514,7 @@ class Ui_MainWindow(object):
         self.button14_4.setObjectName(u"button14_4")
         sizePolicy1.setHeightForWidth(self.button14_4.sizePolicy().hasHeightForWidth())
         self.button14_4.setSizePolicy(sizePolicy1)
-        self.button14_4.setMinimumSize(QSize(88, 44))
+        self.button14_4.setMinimumSize(QSize(44, 44))
         self.button14_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button14_4, 6, 7, 1, 1)
@@ -523,7 +523,7 @@ class Ui_MainWindow(object):
         self.button6_4.setObjectName(u"button6_4")
         sizePolicy1.setHeightForWidth(self.button6_4.sizePolicy().hasHeightForWidth())
         self.button6_4.setSizePolicy(sizePolicy1)
-        self.button6_4.setMinimumSize(QSize(88, 44))
+        self.button6_4.setMinimumSize(QSize(44, 44))
         self.button6_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button6_4, 7, 7, 1, 1)
@@ -532,7 +532,7 @@ class Ui_MainWindow(object):
         self.button26_4.setObjectName(u"button26_4")
         sizePolicy1.setHeightForWidth(self.button26_4.sizePolicy().hasHeightForWidth())
         self.button26_4.setSizePolicy(sizePolicy1)
-        self.button26_4.setMinimumSize(QSize(88, 44))
+        self.button26_4.setMinimumSize(QSize(44, 44))
         self.button26_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button26_4, 4, 3, 1, 1)
@@ -541,7 +541,7 @@ class Ui_MainWindow(object):
         self.button1_4.setObjectName(u"button1_4")
         sizePolicy1.setHeightForWidth(self.button1_4.sizePolicy().hasHeightForWidth())
         self.button1_4.setSizePolicy(sizePolicy1)
-        self.button1_4.setMinimumSize(QSize(88, 44))
+        self.button1_4.setMinimumSize(QSize(44, 44))
         self.button1_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button1_4, 7, 2, 1, 1)
@@ -550,7 +550,7 @@ class Ui_MainWindow(object):
         self.button34_4.setObjectName(u"button34_4")
         sizePolicy1.setHeightForWidth(self.button34_4.sizePolicy().hasHeightForWidth())
         self.button34_4.setSizePolicy(sizePolicy1)
-        self.button34_4.setMinimumSize(QSize(88, 44))
+        self.button34_4.setMinimumSize(QSize(44, 44))
         self.button34_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button34_4, 3, 3, 1, 1)
@@ -593,7 +593,7 @@ class Ui_MainWindow(object):
         self.button62_4.setObjectName(u"button62_4")
         sizePolicy1.setHeightForWidth(self.button62_4.sizePolicy().hasHeightForWidth())
         self.button62_4.setSizePolicy(sizePolicy1)
-        self.button62_4.setMinimumSize(QSize(88, 44))
+        self.button62_4.setMinimumSize(QSize(44, 44))
         self.button62_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button62_4, 0, 7, 1, 1)
@@ -602,7 +602,7 @@ class Ui_MainWindow(object):
         self.button58_4.setObjectName(u"button58_4")
         sizePolicy1.setHeightForWidth(self.button58_4.sizePolicy().hasHeightForWidth())
         self.button58_4.setSizePolicy(sizePolicy1)
-        self.button58_4.setMinimumSize(QSize(88, 44))
+        self.button58_4.setMinimumSize(QSize(44, 44))
         self.button58_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button58_4, 0, 3, 1, 1)
@@ -611,7 +611,7 @@ class Ui_MainWindow(object):
         self.button29_4.setObjectName(u"button29_4")
         sizePolicy1.setHeightForWidth(self.button29_4.sizePolicy().hasHeightForWidth())
         self.button29_4.setSizePolicy(sizePolicy1)
-        self.button29_4.setMinimumSize(QSize(88, 44))
+        self.button29_4.setMinimumSize(QSize(44, 44))
         self.button29_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button29_4, 4, 6, 1, 1)
@@ -620,7 +620,7 @@ class Ui_MainWindow(object):
         self.button21_4.setObjectName(u"button21_4")
         sizePolicy1.setHeightForWidth(self.button21_4.sizePolicy().hasHeightForWidth())
         self.button21_4.setSizePolicy(sizePolicy1)
-        self.button21_4.setMinimumSize(QSize(88, 44))
+        self.button21_4.setMinimumSize(QSize(44, 44))
         self.button21_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button21_4, 5, 6, 1, 1)
@@ -629,7 +629,7 @@ class Ui_MainWindow(object):
         self.button43_4.setObjectName(u"button43_4")
         sizePolicy1.setHeightForWidth(self.button43_4.sizePolicy().hasHeightForWidth())
         self.button43_4.setSizePolicy(sizePolicy1)
-        self.button43_4.setMinimumSize(QSize(88, 44))
+        self.button43_4.setMinimumSize(QSize(44, 44))
         self.button43_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button43_4, 2, 4, 1, 1)
@@ -638,7 +638,7 @@ class Ui_MainWindow(object):
         self.button15_4.setObjectName(u"button15_4")
         sizePolicy1.setHeightForWidth(self.button15_4.sizePolicy().hasHeightForWidth())
         self.button15_4.setSizePolicy(sizePolicy1)
-        self.button15_4.setMinimumSize(QSize(88, 44))
+        self.button15_4.setMinimumSize(QSize(44, 44))
         self.button15_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button15_4, 6, 8, 1, 1)
@@ -651,7 +651,7 @@ class Ui_MainWindow(object):
         self.button32_4.setObjectName(u"button32_4")
         sizePolicy1.setHeightForWidth(self.button32_4.sizePolicy().hasHeightForWidth())
         self.button32_4.setSizePolicy(sizePolicy1)
-        self.button32_4.setMinimumSize(QSize(88, 44))
+        self.button32_4.setMinimumSize(QSize(44, 44))
         self.button32_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button32_4, 3, 1, 1, 1)
@@ -660,7 +660,7 @@ class Ui_MainWindow(object):
         self.button59_4.setObjectName(u"button59_4")
         sizePolicy1.setHeightForWidth(self.button59_4.sizePolicy().hasHeightForWidth())
         self.button59_4.setSizePolicy(sizePolicy1)
-        self.button59_4.setMinimumSize(QSize(88, 44))
+        self.button59_4.setMinimumSize(QSize(44, 44))
         self.button59_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button59_4, 0, 4, 1, 1)
@@ -686,7 +686,7 @@ class Ui_MainWindow(object):
         self.button22_4.setObjectName(u"button22_4")
         sizePolicy1.setHeightForWidth(self.button22_4.sizePolicy().hasHeightForWidth())
         self.button22_4.setSizePolicy(sizePolicy1)
-        self.button22_4.setMinimumSize(QSize(88, 44))
+        self.button22_4.setMinimumSize(QSize(44, 44))
         self.button22_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button22_4, 5, 7, 1, 1)
@@ -695,7 +695,7 @@ class Ui_MainWindow(object):
         self.button42_4.setObjectName(u"button42_4")
         sizePolicy1.setHeightForWidth(self.button42_4.sizePolicy().hasHeightForWidth())
         self.button42_4.setSizePolicy(sizePolicy1)
-        self.button42_4.setMinimumSize(QSize(88, 44))
+        self.button42_4.setMinimumSize(QSize(44, 44))
         self.button42_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button42_4, 2, 3, 1, 1)
@@ -724,7 +724,7 @@ class Ui_MainWindow(object):
         self.button27_4.setObjectName(u"button27_4")
         sizePolicy1.setHeightForWidth(self.button27_4.sizePolicy().hasHeightForWidth())
         self.button27_4.setSizePolicy(sizePolicy1)
-        self.button27_4.setMinimumSize(QSize(88, 44))
+        self.button27_4.setMinimumSize(QSize(44, 44))
         self.button27_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button27_4, 4, 4, 1, 1)
@@ -781,7 +781,7 @@ class Ui_MainWindow(object):
         self.button17_4.setObjectName(u"button17_4")
         sizePolicy1.setHeightForWidth(self.button17_4.sizePolicy().hasHeightForWidth())
         self.button17_4.setSizePolicy(sizePolicy1)
-        self.button17_4.setMinimumSize(QSize(88, 44))
+        self.button17_4.setMinimumSize(QSize(44, 44))
         self.button17_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button17_4, 5, 2, 1, 1)
@@ -886,7 +886,7 @@ class Ui_MainWindow(object):
         self.button37_4.setObjectName(u"button37_4")
         sizePolicy1.setHeightForWidth(self.button37_4.sizePolicy().hasHeightForWidth())
         self.button37_4.setSizePolicy(sizePolicy1)
-        self.button37_4.setMinimumSize(QSize(88, 44))
+        self.button37_4.setMinimumSize(QSize(44, 44))
         self.button37_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button37_4, 3, 6, 1, 1)
@@ -895,7 +895,7 @@ class Ui_MainWindow(object):
         self.button41_4.setObjectName(u"button41_4")
         sizePolicy1.setHeightForWidth(self.button41_4.sizePolicy().hasHeightForWidth())
         self.button41_4.setSizePolicy(sizePolicy1)
-        self.button41_4.setMinimumSize(QSize(88, 44))
+        self.button41_4.setMinimumSize(QSize(44, 44))
         self.button41_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button41_4, 2, 2, 1, 1)
@@ -904,7 +904,7 @@ class Ui_MainWindow(object):
         self.button0_4.setObjectName(u"button0_4")
         sizePolicy1.setHeightForWidth(self.button0_4.sizePolicy().hasHeightForWidth())
         self.button0_4.setSizePolicy(sizePolicy1)
-        self.button0_4.setMinimumSize(QSize(88, 44))
+        self.button0_4.setMinimumSize(QSize(44, 44))
         self.button0_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button0_4, 7, 1, 1, 1)
@@ -917,7 +917,7 @@ class Ui_MainWindow(object):
         self.button56_4.setObjectName(u"button56_4")
         sizePolicy1.setHeightForWidth(self.button56_4.sizePolicy().hasHeightForWidth())
         self.button56_4.setSizePolicy(sizePolicy1)
-        self.button56_4.setMinimumSize(QSize(88, 44))
+        self.button56_4.setMinimumSize(QSize(44, 44))
         self.button56_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button56_4, 0, 1, 1, 1)
@@ -926,7 +926,7 @@ class Ui_MainWindow(object):
         self.button23_4.setObjectName(u"button23_4")
         sizePolicy1.setHeightForWidth(self.button23_4.sizePolicy().hasHeightForWidth())
         self.button23_4.setSizePolicy(sizePolicy1)
-        self.button23_4.setMinimumSize(QSize(88, 44))
+        self.button23_4.setMinimumSize(QSize(44, 44))
         self.button23_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button23_4, 5, 8, 1, 1)
@@ -935,7 +935,7 @@ class Ui_MainWindow(object):
         self.button54_4.setObjectName(u"button54_4")
         sizePolicy1.setHeightForWidth(self.button54_4.sizePolicy().hasHeightForWidth())
         self.button54_4.setSizePolicy(sizePolicy1)
-        self.button54_4.setMinimumSize(QSize(88, 44))
+        self.button54_4.setMinimumSize(QSize(44, 44))
         self.button54_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button54_4, 1, 7, 1, 1)
@@ -1008,7 +1008,7 @@ class Ui_MainWindow(object):
         self.button33_4.setObjectName(u"button33_4")
         sizePolicy1.setHeightForWidth(self.button33_4.sizePolicy().hasHeightForWidth())
         self.button33_4.setSizePolicy(sizePolicy1)
-        self.button33_4.setMinimumSize(QSize(88, 44))
+        self.button33_4.setMinimumSize(QSize(44, 44))
         self.button33_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button33_4, 3, 2, 1, 1)
@@ -1017,7 +1017,7 @@ class Ui_MainWindow(object):
         self.button28_4.setObjectName(u"button28_4")
         sizePolicy1.setHeightForWidth(self.button28_4.sizePolicy().hasHeightForWidth())
         self.button28_4.setSizePolicy(sizePolicy1)
-        self.button28_4.setMinimumSize(QSize(88, 44))
+        self.button28_4.setMinimumSize(QSize(44, 44))
         self.button28_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button28_4, 4, 5, 1, 1)
@@ -1026,7 +1026,7 @@ class Ui_MainWindow(object):
         self.button2_4.setObjectName(u"button2_4")
         sizePolicy1.setHeightForWidth(self.button2_4.sizePolicy().hasHeightForWidth())
         self.button2_4.setSizePolicy(sizePolicy1)
-        self.button2_4.setMinimumSize(QSize(88, 44))
+        self.button2_4.setMinimumSize(QSize(44, 44))
         self.button2_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button2_4, 7, 3, 1, 1)
@@ -1035,7 +1035,7 @@ class Ui_MainWindow(object):
         self.button11_4.setObjectName(u"button11_4")
         sizePolicy1.setHeightForWidth(self.button11_4.sizePolicy().hasHeightForWidth())
         self.button11_4.setSizePolicy(sizePolicy1)
-        self.button11_4.setMinimumSize(QSize(88, 44))
+        self.button11_4.setMinimumSize(QSize(44, 44))
         self.button11_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button11_4, 6, 4, 1, 1)
@@ -1060,7 +1060,7 @@ class Ui_MainWindow(object):
         self.button18_4.setObjectName(u"button18_4")
         sizePolicy1.setHeightForWidth(self.button18_4.sizePolicy().hasHeightForWidth())
         self.button18_4.setSizePolicy(sizePolicy1)
-        self.button18_4.setMinimumSize(QSize(88, 44))
+        self.button18_4.setMinimumSize(QSize(44, 44))
         self.button18_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button18_4, 5, 3, 1, 1)
@@ -1069,7 +1069,7 @@ class Ui_MainWindow(object):
         self.button19_4.setObjectName(u"button19_4")
         sizePolicy1.setHeightForWidth(self.button19_4.sizePolicy().hasHeightForWidth())
         self.button19_4.setSizePolicy(sizePolicy1)
-        self.button19_4.setMinimumSize(QSize(88, 44))
+        self.button19_4.setMinimumSize(QSize(44, 44))
         self.button19_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button19_4, 5, 4, 1, 1)
@@ -1078,7 +1078,7 @@ class Ui_MainWindow(object):
         self.button47_4.setObjectName(u"button47_4")
         sizePolicy1.setHeightForWidth(self.button47_4.sizePolicy().hasHeightForWidth())
         self.button47_4.setSizePolicy(sizePolicy1)
-        self.button47_4.setMinimumSize(QSize(88, 44))
+        self.button47_4.setMinimumSize(QSize(44, 44))
         self.button47_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button47_4, 2, 8, 1, 1)
@@ -1087,7 +1087,7 @@ class Ui_MainWindow(object):
         self.button53_4.setObjectName(u"button53_4")
         sizePolicy1.setHeightForWidth(self.button53_4.sizePolicy().hasHeightForWidth())
         self.button53_4.setSizePolicy(sizePolicy1)
-        self.button53_4.setMinimumSize(QSize(88, 44))
+        self.button53_4.setMinimumSize(QSize(44, 44))
         self.button53_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button53_4, 1, 6, 1, 1)
@@ -1130,7 +1130,7 @@ class Ui_MainWindow(object):
         self.button50_4.setObjectName(u"button50_4")
         sizePolicy1.setHeightForWidth(self.button50_4.sizePolicy().hasHeightForWidth())
         self.button50_4.setSizePolicy(sizePolicy1)
-        self.button50_4.setMinimumSize(QSize(88, 44))
+        self.button50_4.setMinimumSize(QSize(44, 44))
         self.button50_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button50_4, 1, 3, 1, 1)
@@ -1255,7 +1255,7 @@ class Ui_MainWindow(object):
         self.button20_4.setObjectName(u"button20_4")
         sizePolicy1.setHeightForWidth(self.button20_4.sizePolicy().hasHeightForWidth())
         self.button20_4.setSizePolicy(sizePolicy1)
-        self.button20_4.setMinimumSize(QSize(88, 44))
+        self.button20_4.setMinimumSize(QSize(44, 44))
         self.button20_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button20_4, 5, 5, 1, 1)
@@ -1296,7 +1296,7 @@ class Ui_MainWindow(object):
         self.button57_4.setObjectName(u"button57_4")
         sizePolicy1.setHeightForWidth(self.button57_4.sizePolicy().hasHeightForWidth())
         self.button57_4.setSizePolicy(sizePolicy1)
-        self.button57_4.setMinimumSize(QSize(88, 44))
+        self.button57_4.setMinimumSize(QSize(44, 44))
         self.button57_4.setMaximumSize(QSize(88, 44))
 
         self.gridLayout_5.addWidget(self.button57_4, 0, 2, 1, 1)
